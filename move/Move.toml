@@ -1,0 +1,18 @@
+[package]
+name = "orbitrium"
+version = "0.1.0"
+edition = "2024.beta" 
+license = "Apache 2.0"   
+
+[dependencies]
+commitment = { git = "https://github.com/SilvanaOne/silvana", rev = "ab48ba015ee1f55ab1ce94445be767d228b977ef", subdir = "move/commitment" }
+coordination = { git = "https://github.com/SilvanaOne/silvana", rev = "ab48ba015ee1f55ab1ce94445be767d228b977ef", subdir = "move/coordination" }
+
+[addresses]
+orbitrium = "0x0"
+
+[dev-dependencies]
+
+[dev-addresses]
+
+
