@@ -1,11 +1,5 @@
 import { TransitionData } from "./transition.js";
-import {
-  AddMap,
-  AddProgramState,
-  AddProgram,
-  AddProgramProof,
-} from "./circuit.js";
-import { AddProgramCommitment } from "./commitment.js";
+import { GameProgramState, GameProgram, GameProgramProof } from "./circuit.js";
 import {
   readDataAvailability,
   rejectProof,
@@ -62,15 +56,15 @@ export async function merge(params: {
     { serialized: proof2Serialized, sequences: sequences2, name: "proof 2" },
   ];
 
-  const proofs: AddProgramProof[] = [];
+  const proofs: GameProgramProof[] = [];
 
   for (const { serialized, sequences, name } of proofData) {
-    let proof: AddProgramProof;
+    let proof: GameProgramProof;
 
     // Deserialize the proof
     try {
       console.log(`Deserializing ${name}...`);
-      proof = await AddProgramProof.fromJSON(
+      proof = await GameProgramProof.fromJSON(
         JSON.parse(serialized) as JsonProof
       );
     } catch (err) {
@@ -129,7 +123,7 @@ export async function merge(params: {
 
   // Merge the proofs
   console.time("merging proofs");
-  const mergedProof = await AddProgram.merge(
+  const mergedProof = await GameProgram.merge(
     proof1.publicInput,
     proof1,
     proof2
@@ -159,9 +153,8 @@ export async function getStateAndProof(params: {
   blockNumber: bigint;
 }): Promise<
   | {
-      state: AddProgramState;
-      map: AddMap;
-      proof?: AddProgramProof;
+      state: GameProgramState;
+      proof?: GameProgramProof;
     }
   | undefined
 > {

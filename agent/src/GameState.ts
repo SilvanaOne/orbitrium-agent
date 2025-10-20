@@ -1,5 +1,5 @@
-import { assert, Field, Int64, Poseidon, Struct } from 'o1js';
-import { ResourceVector } from './utils/ResourceVector.js';
+import { assert, Field, Int64, Poseidon, Struct } from "o1js";
+import { ResourceVector } from "./utils/ResourceVector.js";
 
 export class GameState extends Struct({
   resources: ResourceVector,
@@ -51,5 +51,32 @@ export class GameState extends Struct({
       .and(this.resourcesPerSecond.equals(other.resourcesPerSecond))
       .and(this.clickPower.equals(other.clickPower))
       .and(this.lastClaimTime.equals(other.lastClaimTime));
+  }
+
+  serialize() {
+    return JSON.stringify({
+      resources: this.resources.toString(),
+      storages: this.storages.toString(),
+      resourcesPerSecond: this.resourcesPerSecond.toString(),
+      clickPower: this.clickPower.toString(),
+      lastClaimTime: this.lastClaimTime.toString(),
+    });
+  }
+
+  static deserialize(str: string) {
+    const {
+      resources,
+      storages,
+      resourcesPerSecond,
+      clickPower,
+      lastClaimTime,
+    } = JSON.parse(str);
+    return new GameState({
+      resources: ResourceVector.fromString(resources),
+      storages: ResourceVector.fromString(storages),
+      resourcesPerSecond: ResourceVector.fromString(resourcesPerSecond),
+      clickPower: ResourceVector.fromString(clickPower),
+      lastClaimTime: ResourceVector.fromString(lastClaimTime),
+    });
   }
 }

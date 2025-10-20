@@ -1,7 +1,7 @@
-import { assert, Poseidon, Provable, Int64, Struct, Bool } from 'o1js';
+import { assert, Poseidon, Provable, Int64, Struct, Bool } from "o1js";
 
-import { DECIMALS, RESOURCE_COUNT, resourcesToId } from '../constants.js';
-import { Resource } from '../lib/types.js';
+import { DECIMALS, RESOURCE_COUNT, resourcesToId } from "../constants.js";
+import { Resource } from "../lib/types.js";
 
 /*
  * Vector of resources
@@ -34,7 +34,7 @@ export class ResourceVector extends Struct({
     for (let i = 0; i < RESOURCE_COUNT; i++) {
       let curValue = this.resources[i].add(other.resources[i]);
       if (overflowCheck) {
-        assert(curValue.isNonNegative(), 'Resource overflow');
+        assert(curValue.isNonNegative(), "Resource overflow");
       }
       result[i] = curValue;
     }
@@ -47,7 +47,7 @@ export class ResourceVector extends Struct({
     for (let i = 0; i < RESOURCE_COUNT; i++) {
       assert(
         this.resources[i].sub(other.resources[i]).isNonNegative(),
-        'Resource underflow'
+        "Resource underflow"
       );
       result[i] = this.resources[i].sub(other.resources[i]);
     }
@@ -121,6 +121,11 @@ export class ResourceVector extends Struct({
   }
 
   toString() {
-    return this.resources.map((r) => r.toString()).join(', ');
+    return this.resources.map((r) => r.toString()).join(", ");
+  }
+
+  static fromString(str: string) {
+    const resources = str.split(", ").map((r) => Int64.from(r));
+    return new ResourceVector({ resources });
   }
 }
