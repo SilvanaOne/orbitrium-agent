@@ -2,7 +2,7 @@
 
 [move]
 version = 3
-manifest_digest = "F3F473DCA13B1132BCFEF98D15BFD3FF498B1DE8BC7693724D59BAA6E7D9AA34"
+manifest_digest = "D1B08F5CD424788ACD9F2AF2D453F4220A1F6499517111A348A9E6AD68EB05FA"
 deps_digest = "52B406A7A21811BEF51751CF88DA0E76DAEFFEAC888D4F4060B1A72BBE7D8D35"
 dependencies = [
   { id = "Bridge", name = "Bridge" },
@@ -46,7 +46,7 @@ dependencies = [
 
 [[move.package]]
 id = "commitment"
-source = { git = "https://github.com/SilvanaOne/silvana", rev = "ab48ba015ee1f55ab1ce94445be767d228b977ef", subdir = "move/commitment" }
+source = { git = "https://github.com/SilvanaOne/silvana", rev = "4308d15b80468f8fea2673a399e7d925df652082", subdir = "move/commitment" }
 
 dependencies = [
   { id = "Bridge", name = "Bridge" },
@@ -58,7 +58,7 @@ dependencies = [
 
 [[move.package]]
 id = "constants"
-source = { git = "https://github.com/SilvanaOne/silvana", rev = "ab48ba015ee1f55ab1ce94445be767d228b977ef", subdir = "move/constants" }
+source = { git = "https://github.com/SilvanaOne/silvana", rev = "4308d15b80468f8fea2673a399e7d925df652082", subdir = "move/constants" }
 
 dependencies = [
   { id = "Bridge", name = "Bridge" },
@@ -69,7 +69,7 @@ dependencies = [
 
 [[move.package]]
 id = "coordination"
-source = { git = "https://github.com/SilvanaOne/silvana", rev = "ab48ba015ee1f55ab1ce94445be767d228b977ef", subdir = "move/coordination" }
+source = { git = "https://github.com/SilvanaOne/silvana", rev = "4308d15b80468f8fea2673a399e7d925df652082", subdir = "move/coordination" }
 
 dependencies = [
   { id = "Bridge", name = "Bridge" },
