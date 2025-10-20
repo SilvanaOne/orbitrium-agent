@@ -9,17 +9,12 @@ import {
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { SUI_CLOCK_OBJECT_ID } from "@mysten/sui/utils";
 
-const developerName = "AddDeveloper";
-const agentName = "AddAgent";
-const appName = "add_app";
-const appDescription = "Silvana Add App";
+const developerName = "zkNoid";
+const agentName = "OrbitriumAgent";
+const appName = "orbitrium";
+const appDescription = "Orbitrium Game";
 
-export async function createApp(params: {
-  contractAddress: string;
-  adminAddress: string;
-  chain: string;
-  nonce: number;
-}): Promise<string> {
+export async function createApp() {
   const suiSecretKey: string = process.env.SUI_SECRET_KEY!;
 
   if (!suiSecretKey) {
@@ -27,21 +22,10 @@ export async function createApp(params: {
   }
   process.env.SUI_KEY = suiSecretKey;
 
-  const packageID = process.env.APP_PACKAGE_ID;
-  if (!packageID) {
-    throw new Error("APP_PACKAGE_ID is not set");
+  const registryAddress = process.env.SILVANA_REGISTRY;
+  if (!registryAddress) {
+    throw new Error("SILVANA_REGISTRY is not set");
   }
-
-  if (!params.adminAddress) {
-    throw new Error("Missing admin address");
-  }
-
-  if (!params.contractAddress) {
-    throw new Error("Missing contract address");
-  }
-
-  // Get registry from env or create a test one
-  let registryAddress = process.env.SILVANA_REGISTRY;
   const registryPackageID = process.env.SILVANA_REGISTRY_PACKAGE;
   if (!registryPackageID) {
     throw new Error(
@@ -55,62 +39,6 @@ export async function createApp(params: {
     secretKey: suiSecretKey,
   });
   console.log("sender:", address);
-
-  if (!registryAddress) {
-    console.log("SILVANA_REGISTRY not set, creating a test registry...");
-
-    const transaction = new Transaction();
-    const testRegistry = await AgentRegistry.createAgentRegistry({
-      name: "Test Registry for Silvana Add App",
-      transaction,
-    });
-
-    transaction.setSender(keyPair.toSuiAddress());
-    transaction.setGasBudget(100_000_000);
-
-    const registryResult = await executeTx({
-      tx: transaction,
-      keyPair,
-    });
-
-    if (!registryResult) {
-      throw new Error("Failed to create registry - no result");
-    }
-
-    if (registryResult.error) {
-      throw new Error(`Failed to create registry: ${registryResult.error}`);
-    }
-
-    if (!registryResult.tx?.objectChanges) {
-      throw new Error("Failed to create registry - no object changes");
-    }
-
-    // Find the created registry object
-    const registryObject = registryResult.tx.objectChanges.find(
-      (obj: any) =>
-        obj.type === "created" &&
-        obj.objectType?.includes("::registry::SilvanaRegistry")
-    );
-
-    if (!registryObject || !("objectId" in registryObject)) {
-      throw new Error("Failed to find created registry object");
-    }
-
-    registryAddress = registryObject.objectId;
-    console.log("Registry created with address:", registryAddress);
-
-    if (registryResult.digest) {
-      await waitTx(registryResult.digest);
-    }
-
-    console.log("Created test registry:", registryAddress);
-  }
-
-  // Ensure we have a valid registry address
-  if (!registryAddress) {
-    throw new Error("Registry address is not set after creation");
-  }
-  process.env.SILVANA_REGISTRY = registryAddress;
 
   const registry = new AgentRegistry({ registry: registryAddress });
   const developer = await registry.getDeveloper({ name: developerName });
@@ -134,9 +62,9 @@ export async function createApp(params: {
       developer: developerName,
       name: agentName,
       image: "",
-      description: "Add Agent",
+      description: "Orbitrium Agent",
       site: "",
-      chains: ["sui:devnet", "mina:devnet", "zeko:testnet"],
+      chains: ["sui:devnet", "zeko:testnet"],
       transaction,
     });
 
@@ -177,18 +105,8 @@ export async function createApp(params: {
     });
     registry.addMethodToApp({
       appName,
-      methodName: "add",
-      description: "Prove addition",
-      developerName,
-      agentName,
-      agentMethod: "prove",
-      transaction,
-    });
-
-    registry.addMethodToApp({
-      appName,
-      methodName: "multiply",
-      description: "Prove multiplication",
+      methodName: "click",
+      description: "Prove game click",
       developerName,
       agentName,
       agentMethod: "prove",
@@ -240,6 +158,46 @@ export async function createApp(params: {
   if (existingApp) {
     console.log("App data:", existingApp);
   }
+}
+
+export async function createAppInstance(params: {
+  contractAddress: string;
+  adminAddress: string;
+  chain: string;
+  nonce: number;
+}): Promise<string> {
+  if (!params.adminAddress) {
+    throw new Error("Missing admin address");
+  }
+
+  if (!params.contractAddress) {
+    throw new Error("Missing contract address");
+  }
+
+  const registryAddress = process.env.SILVANA_REGISTRY;
+  if (!registryAddress) {
+    throw new Error("SILVANA_REGISTRY is not set");
+  }
+
+  const packageID = process.env.APP_PACKAGE_ID;
+  if (!packageID) {
+    throw new Error("APP_PACKAGE_ID is not set");
+  }
+
+  const suiSecretKey: string = process.env.SUI_SECRET_KEY!;
+
+  if (!suiSecretKey) {
+    throw new Error("Missing environment variable SUI_SECRET_KEY");
+  }
+  process.env.SUI_KEY = suiSecretKey;
+
+  const keyPair = Ed25519Keypair.fromSecretKey(suiSecretKey);
+  const address = await getSuiAddress({
+    secretKey: suiSecretKey,
+  });
+  console.log("sender:", address);
+
+  const registry = new AgentRegistry({ registry: registryAddress });
 
   let appID: string | undefined = undefined;
 
@@ -353,42 +311,7 @@ export async function createApp(params: {
 
   console.log("Metadata and kv added successfully");
 
-  // Initialize the app with the instance
-  console.log("Initializing app with instance...");
-  const initTx = new Transaction();
-
-  // public fun init_app_with_instance(app: &App, instance: &mut AppInstance, clock: &Clock, ctx: &mut TxContext)
-  initTx.moveCall({
-    target: `${packageID}::main::init_app_with_instance`,
-    arguments: [
-      initTx.object(appID),
-      initTx.object(appInstanceID),
-      initTx.object(SUI_CLOCK_OBJECT_ID),
-    ],
-  });
-
-  initTx.setSender(address);
-  initTx.setGasBudget(100_000_000);
-
-  const initResult = await executeTx({
-    tx: initTx,
-    keyPair,
-  });
-
-  if (!initResult) {
-    throw new Error("Failed to initialize app");
-  }
-
-  const initWaitResult = await waitTx(initResult.digest);
-  if (initWaitResult.errors) {
-    console.log(
-      `Errors for init tx ${initResult.digest}:`,
-      initWaitResult.errors
-    );
-    throw new Error("Failed to initialize app");
-  }
-
-  console.log("App initialized successfully");
-
+  console.log("App created successfully");
+  console.log("App ID:", appID);
   return appID;
 }

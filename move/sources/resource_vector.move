@@ -185,7 +185,7 @@ public fun ge(a: &ResourceVector, b: &ResourceVector): bool {
     let len = vector::length(&a.resources);
     let mut i = 0;
     while (i < len) {
-        if (a.resources[i] < b.resources[i]) { return false; };
+        if (a.resources[i] < b.resources[i]) { return false };
         i = i + 1;
     };
     true

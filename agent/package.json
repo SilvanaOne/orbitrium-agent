@@ -11,7 +11,7 @@
     "state": "npm run test test/state.test.ts",
     "add": "npm run test test/add.test.ts",
     "batch": "npm run test test/batch.test.ts",
-    "multiply": "npm run test test/multiply.test.ts",
+    "app": "npm run test test/app.test.ts",
     "deploy": "MINA_CHAIN=mina:devnet npm run test test/deploy.test.ts",
     "deploy:zeko": "MINA_CHAIN=zeko:testnet npm run test test/deploy.test.ts",
     "compile": "npm run test test/compile.test.ts",

@@ -3,14 +3,9 @@ module orbitrium::game;
 
 use orbitrium::resource_vector::{Self as RV, ResourceVector};
 use std::bcs;
-use std::u64::{Self, pow};
-use std::vector;
+use std::u64::pow;
 use sui::clock::{Self, Clock};
-use sui::ed25519;
 use sui::event;
-use sui::object::{Self, UID};
-use sui::transfer;
-use sui::tx_context::{Self, TxContext};
 
 // ────────────────────────────────────────────────────────────────
 //  ERROR CODES
@@ -25,9 +20,6 @@ const E_INSUFFICIENT_RESOURCES: u64 = 1002;
 /// Error code: Invalid signature verification
 const E_INVALID_SIGNATURE: u64 = 1003;
 
-/// Error code: Invalid upgrade type
-const E_INVALID_UPGRADE_TYPE: u64 = 1004;
-
 /// Error code: Already seen
 const E_ALREADY_SEEN: u64 = 1005;
 
@@ -41,7 +33,7 @@ const ADMIN_PUBLIC_KEY: vector<u8> = vector[
     46, 21, 104, 138, 185, 44, 116, 249, 22, 58, 177, 143, 225, 161, 6, 192,
 ];
 
-public struct Game has key {
+public struct Game has key, store {
     id: UID,
     user_address: vector<u8>, // Zeko address of the user
     resources: ResourceVector,
@@ -84,11 +76,11 @@ public struct UpdateEvent has copy, drop {
 }
 
 // Create empty new game for user
-public entry fun create_game(
-    clock: &Clock,
+public fun create_game(
     user_address: vector<u8>,
+    clock: &Clock,
     ctx: &mut TxContext,
-) {
+): Game {
     let game = Game {
         id: object::new(ctx),
         user_address,
@@ -104,7 +96,7 @@ public entry fun create_game(
         upgrade_used: sui::table::new(ctx),
     };
 
-    transfer::transfer(game, tx_context::sender(ctx));
+    game
 }
 
 /**
@@ -117,15 +109,15 @@ public entry fun create_game(
  * @param clock - The clock
  * @param ctx - The transaction context
  */
-public entry fun click(
+#[allow(implicit_const_copy)]
+public fun click(
     game: &mut Game,
     rule_id: u64,
     targetMagnitude: vector<u64>,
     priceMagnitude: vector<u64>,
     signature: vector<u8>,
     clock: &Clock,
-    ctx: &mut TxContext,
-) {
+): UpdateEvent {
     // #TODO add rule check
     let payload = ClickPayload {
         rule_id,
@@ -185,7 +177,7 @@ public entry fun click(
     game.resources = new_total;
     game.last_claim_time = RV::add(&game.last_claim_time, &elapsed_targeted);
 
-    event::emit(UpdateEvent {
+    let event = UpdateEvent {
         game_id: object::id(game),
         rule_id,
         time_passed: elapsed_targeted.value(),
@@ -193,7 +185,9 @@ public entry fun click(
         click_pow: click_power_targeted.value(),
         rps: generated.value(),
         storages: limited.value(),
-    });
+    };
+    event::emit(event);
+    event
 }
 
 /**
@@ -209,7 +203,8 @@ public entry fun click(
  * @param clock - The clock
  * @param ctx - The transaction context
 */
-public entry fun upgrade(
+#[allow(implicit_const_copy)]
+public fun upgrade(
     game: &mut Game,
     rule_id: u64,
     priceMagnitude: vector<u64>,
@@ -222,8 +217,6 @@ public entry fun upgrade(
     idleUpgradeLevelInc: vector<u64>,
     storageUpgradeLevelInc: vector<u64>,
     signature: vector<u8>,
-    clock: &Clock,
-    ctx: &mut TxContext,
 ) {
     // #TODO add rule check
     let payload = UpgradePayload {
