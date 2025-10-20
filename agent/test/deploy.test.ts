@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { createApp } from "./helpers/create.js";
+import { createApp, createAppInstance } from "./helpers/create.js";
 import { deployAddContract } from "../src/deploy.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -46,7 +46,7 @@ describe("Deploy App for Coordinator", async () => {
       ? parseInt(process.env.ADD_CONTRACT_NONCE)
       : 0;
 
-    const appID = await createApp({
+    const appID = await createAppInstance({
       contractAddress,
       adminAddress,
       chain,
