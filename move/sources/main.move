@@ -150,6 +150,17 @@ public fun click(
         event,
     };
     let transition_data_bytes = bcs::to_bytes(&transition_data);
+    let action = create_action(
+        b"click".to_string(),
+        vector[],
+    );
+    let state = instance.state_mut(&app.instance_cap);
+
+    state.commit_action(
+        action,
+        &vector[],
+        ctx,
+    );
 
     coordination::app_instance::create_app_job(
         instance,

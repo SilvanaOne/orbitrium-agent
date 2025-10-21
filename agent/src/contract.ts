@@ -10,6 +10,7 @@ import {
   Bool,
   DeployArgs,
   Permissions,
+  Struct,
 } from "o1js";
 import { GameProgramState, GameProgramProof } from "./circuit.js";
 import { GameState } from "./GameState.js";
@@ -20,6 +21,12 @@ interface GameContractDeployProps extends Exclude<DeployArgs, undefined> {
   admin: PublicKey;
   uri: string;
 }
+
+export class SettleEvent extends Struct({
+  blockNumber: UInt64,
+  sequence: UInt64,
+  commitment: Field,
+}) {}
 
 export class GameContract extends SmartContract {
   @state(PublicKey) admin = State<PublicKey>();
@@ -52,7 +59,7 @@ export class GameContract extends SmartContract {
   }
 
   events = {
-    settle: GameProgramState,
+    settle: SettleEvent,
   };
 
   @method async settle(proof: GameProgramProof) {
@@ -75,9 +82,17 @@ export class GameContract extends SmartContract {
 
     // Update contract state with proof output
     this.sequence.set(proof.publicOutput.sequence);
-    this.gameStateCommit.set(proof.publicOutput.gameState.getCommit());
+    const commit = proof.publicOutput.gameState.getCommit();
+    this.gameStateCommit.set(commit);
     this.blockNumber.set(proof.publicOutput.blockNumber);
 
-    this.emitEvent("settle", proof.publicOutput);
+    this.emitEvent(
+      "settle",
+      new SettleEvent({
+        blockNumber: proof.publicOutput.blockNumber,
+        sequence: proof.publicOutput.sequence,
+        commitment: commit,
+      })
+    );
   }
 }
