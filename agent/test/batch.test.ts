@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { action } from "./helpers/action.js";
+import { simpleClick } from "./helpers/click.js";
 import { AppInstanceManager } from "@silvana-one/coordination";
 
 describe("Batch", async () => {
@@ -72,11 +72,7 @@ describe("Batch", async () => {
 
       for (let i = 0; i < 10; i++) {
         try {
-          await action({
-            action: "add",
-            value: 1,
-            index: 1,
-          });
+          await simpleClick();
         } catch (error: any) {
           console.error("❌ Error sending action:", error?.message);
         }

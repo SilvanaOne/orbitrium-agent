@@ -1,30 +1,30 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { createApp, createAppInstance } from "./helpers/create.js";
-import { deployAddContract } from "../src/deploy.js";
+import { deployGameContract } from "../src/deploy.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 
 describe("Deploy App for Coordinator", async () => {
   it("should create app and save to .env.app", async () => {
-    console.log("🚀 Deploying AddContract to Mina...");
+    console.log("🚀 Deploying GameContract to Mina...");
 
     try {
       const { contractAddress, adminAddress, txHash, verificationKey, nonce } =
-        await deployAddContract();
-      console.log("✅ AddContract deployed successfully!");
+        await deployGameContract();
+      console.log("✅ GameContract deployed successfully!");
       console.log(`  Contract Address: ${contractAddress}`);
       console.log(`  Transaction Hash: ${txHash}`);
       console.log(`  Verification Key Hash: ${verificationKey.hash.toJSON()}`);
       console.log(`  Next Nonce: ${nonce}`);
 
       // Save contract info to environment for later use
-      process.env.ADD_CONTRACT_ADDRESS = contractAddress;
-      process.env.ADD_CONTRACT_ADMIN_ADDRESS = adminAddress;
-      process.env.ADD_CONTRACT_TX_HASH = txHash;
-      process.env.ADD_CONTRACT_NONCE = nonce.toString();
+      process.env.GAME_CONTRACT_ADDRESS = contractAddress;
+      process.env.GAME_CONTRACT_ADMIN_ADDRESS = adminAddress;
+      process.env.GAME_CONTRACT_TX_HASH = txHash;
+      process.env.GAME_CONTRACT_NONCE = nonce.toString();
     } catch (error) {
-      console.error("❌ AddContract deployment failed:", error);
+      console.error("❌ GameContract deployment failed:", error);
       console.log("⚠️ Continuing with Sui app deployment...");
     }
 
@@ -34,16 +34,16 @@ describe("Deploy App for Coordinator", async () => {
     const packageID = process.env.APP_PACKAGE_ID;
     assert.ok(packageID !== undefined, "APP_PACKAGE_ID is not set");
     console.log("📦 Package ID:", packageID);
-    const contractAddress = process.env.ADD_CONTRACT_ADDRESS;
-    const adminAddress = process.env.ADD_CONTRACT_ADMIN_ADDRESS;
+    const contractAddress = process.env.GAME_CONTRACT_ADDRESS;
+    const adminAddress = process.env.GAME_CONTRACT_ADMIN_ADDRESS;
     const chain = process.env.MINA_CHAIN;
     if (!contractAddress || !adminAddress || !chain) {
-      throw new Error("AddContract deployment failed");
+      throw new Error("GameContract deployment failed");
     }
 
     // Create the app with Mina contract info
-    const nonce = process.env.ADD_CONTRACT_NONCE
-      ? parseInt(process.env.ADD_CONTRACT_NONCE)
+    const nonce = process.env.GAME_CONTRACT_NONCE
+      ? parseInt(process.env.GAME_CONTRACT_NONCE)
       : 0;
 
     const appID = await createAppInstance({
@@ -95,12 +95,15 @@ describe("Deploy App for Coordinator", async () => {
       ``,
       `# Mina Contract Configuration`,
       `MINA_CHAIN=${process.env.MINA_CHAIN || "mina:devnet"}`,
-      process.env.ADD_CONTRACT_ADDRESS
-        ? `ADD_CONTRACT_ADDRESS=${process.env.ADD_CONTRACT_ADDRESS}`
-        : `# ADD_CONTRACT_ADDRESS=<not deployed>`,
-      process.env.ADD_CONTRACT_TX_HASH
-        ? `ADD_CONTRACT_TX_HASH=${process.env.ADD_CONTRACT_TX_HASH}`
-        : `# ADD_CONTRACT_TX_HASH=<not deployed>`,
+      process.env.GAME_CONTRACT_ADDRESS
+        ? `GAME_CONTRACT_ADDRESS=${process.env.GAME_CONTRACT_ADDRESS}`
+        : `# GAME_CONTRACT_ADDRESS=<not deployed>`,
+      process.env.GAME_CONTRACT_TX_HASH
+        ? `GAME_CONTRACT_TX_HASH=${process.env.GAME_CONTRACT_TX_HASH}`
+        : `# GAME_CONTRACT_TX_HASH=<not deployed>`,
+      process.env.GAME_CONTRACT_NONCE
+        ? `GAME_CONTRACT_NONCE=${process.env.GAME_CONTRACT_NONCE}`
+        : `# GAME_CONTRACT_NONCE=<not deployed>`,
       `MINA_APP_ADMIN=${process.env.MINA_APP_ADMIN}`,
       ``,
     ].join("\n");

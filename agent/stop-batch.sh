@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Container name
-CONTAINER_NAME="add-agent-batch"
+CONTAINER_NAME="click-agent-batch"
 
 echo -e "${GREEN}Stopping batch test container...${NC}"
 

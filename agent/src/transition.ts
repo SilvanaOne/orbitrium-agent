@@ -1,16 +1,17 @@
 import { bcs } from "@mysten/sui/bcs";
-import { UInt64 } from "o1js";
-import { scalar, rScalarPow } from "@silvana-one/mina-utils";
-import type { CanonicalElement } from "@silvana-one/mina-utils";
 
 /**
- * CommitmentData struct matching the Move definition in state.move
+ * UpdateEvent struct matching the Move definition in game.move
  *
  * Move struct:
- * public struct CommitmentData has copy, drop {
- *     actions_commitment: Element<Scalar>,
- *     actions_sequence: u64,
- *     state_commitment: Element<Scalar>,
+ * public struct UpdateEvent has copy, drop {
+ *     game_id: ID,
+ *     rule_id: u64,
+ *     time_passed: vector<u64>,
+ *     resources: vector<u64>,
+ *     click_pow: vector<u64>,
+ *     rps: vector<u64>,
+ *     storages: vector<u64>,
  * }
  */
 
@@ -22,43 +23,41 @@ import type { CanonicalElement } from "@silvana-one/mina-utils";
  *     block_number: u64,
  *     sequence: u64,
  *     method: String,
- *     index: u32,
- *     value: u256,
- *     old_value: u256,
- *     old_commitment: CommitmentData,
- *     new_commitment: CommitmentData,
+ *     event: UpdateEvent,
  * }
  */
 
-// Element<Scalar> is a struct with bytes field (from group_ops.move line 22-24)
-const ElementScalar = bcs.struct("Element", {
-  bytes: bcs.vector(bcs.u8()),
-});
+// ID type from Sui (32 bytes)
+const ID = bcs.fixedArray(32, bcs.u8());
 
-export const CommitmentDataBcs = bcs.struct("CommitmentData", {
-  actions_commitment: ElementScalar,
-  actions_sequence: bcs.u64(),
-  state_commitment: ElementScalar,
+export const UpdateEventBcs = bcs.struct("UpdateEvent", {
+  game_id: ID,
+  rule_id: bcs.u64(),
+  time_passed: bcs.vector(bcs.u64()),
+  resources: bcs.vector(bcs.u64()),
+  click_pow: bcs.vector(bcs.u64()),
+  rps: bcs.vector(bcs.u64()),
+  storages: bcs.vector(bcs.u64()),
 });
 
 export const TransitionDataBcs = bcs.struct("TransitionData", {
   block_number: bcs.u64(),
   sequence: bcs.u64(),
   method: bcs.string(),
-  index: bcs.u32(),
-  value: bcs.u256(),
-  old_value: bcs.u256(),
-  old_commitment: CommitmentDataBcs,
-  new_commitment: CommitmentDataBcs,
+  event: UpdateEventBcs,
 });
 
 /**
- * Raw CommitmentData as returned by BCS deserialization
+ * Raw UpdateEvent as returned by BCS deserialization
  */
-export interface RawCommitmentData {
-  actions_commitment: { bytes: number[] }; // Element struct with bytes vector
-  actions_sequence: string; // BCS returns u64 as string
-  state_commitment: { bytes: number[] }; // Element struct with bytes vector
+export interface RawUpdateEvent {
+  game_id: number[]; // ID as byte array
+  rule_id: string; // BCS returns u64 as string
+  time_passed: string[]; // BCS returns vector<u64> as string[]
+  resources: string[]; // BCS returns vector<u64> as string[]
+  click_pow: string[]; // BCS returns vector<u64> as string[]
+  rps: string[]; // BCS returns vector<u64> as string[]
+  storages: string[]; // BCS returns vector<u64> as string[]
 }
 
 /**
@@ -68,65 +67,48 @@ export interface RawTransitionData {
   block_number: string; // BCS returns u64 as string
   sequence: string; // BCS returns u64 as string
   method: string;
-  index: number;
-  value: string; // BCS returns u256 as string
-  old_value: string; // BCS returns u256 as string
-  old_commitment: RawCommitmentData;
-  new_commitment: RawCommitmentData;
+  event: RawUpdateEvent;
 }
 
 /**
- * Processed CommitmentData with provable commitment representations
+ * Processed UpdateEvent with converted types
  */
-export interface CommitmentData {
-  actions_commitment: CanonicalElement; // Provable scalar
-  actions_sequence: bigint; // u64 as bigint for numeric operations
-  state_commitment: CanonicalElement; // Provable scalar
+export interface UpdateEvent {
+  game_id: Uint8Array; // ID as Uint8Array
+  rule_id: bigint; // u64 as bigint for numeric operations
+  time_passed: bigint[]; // vector<u64> as bigint[]
+  resources: bigint[]; // vector<u64> as bigint[]
+  click_pow: bigint[]; // vector<u64> as bigint[]
+  rps: bigint[]; // vector<u64> as bigint[]
+  storages: bigint[]; // vector<u64> as bigint[]
 }
 
 /**
- * Processed TransitionData with provable commitment representations
+ * Processed TransitionData with converted types
  */
 export interface TransitionData {
   block_number: bigint; // u64 as bigint for numeric operations
   sequence: bigint; // u64 as bigint for numeric operations
   method: string;
-  index: number;
-  value: bigint; // u256 as bigint for numeric operations
-  old_value: bigint; // u256 as bigint for numeric operations
-  old_commitment: CommitmentData;
-  new_commitment: CommitmentData;
+  event: UpdateEvent;
 }
 
 /**
- * Convert commitment bytes to bigint for scalar operations
- * BLS12-381 scalars are encoded in big-endian format
- * @param bytes - Byte array representing Element<Scalar>
- * @returns BigInt representation
+ * Convert game ID byte array to Uint8Array
+ * @param bytes - Byte array representing ID
+ * @returns Uint8Array representation
  */
-export function commitmentArrayToBigInt(bytes: number[]): bigint {
-  let result = 0n;
-  for (let i = 0; i < bytes.length; i++) {
-    result = result * 256n + BigInt(bytes[i]);
-  }
-  return result;
+export function gameIdToUint8Array(bytes: number[]): Uint8Array {
+  return new Uint8Array(bytes);
 }
 
 /**
- * Convert bigint back to commitment byte array
- * @param value - BigInt representation
+ * Convert Uint8Array back to game ID byte array
+ * @param value - Uint8Array representation
  * @returns 32-byte array for BCS compatibility
  */
-export function bigIntToCommitmentArray(value: bigint): number[] {
-  const bytes: number[] = new Array(32).fill(0);
-  let remaining = value;
-
-  for (let i = 31; i >= 0; i--) {
-    bytes[i] = Number(remaining & 0xffn);
-    remaining = remaining >> 8n;
-  }
-
-  return bytes;
+export function uint8ArrayToGameId(value: Uint8Array): number[] {
+  return Array.from(value);
 }
 
 /**
@@ -142,9 +124,9 @@ export function deserializeRawTransitionData(
 }
 
 /**
- * Deserializes TransitionData from BCS bytes and converts commitments to provable form
+ * Deserializes TransitionData from BCS bytes and converts types
  * @param data - The BCS serialized data as byte array or Uint8Array
- * @returns Processed TransitionData object with Fr.Canonical.provable commitments
+ * @returns Processed TransitionData object with converted types
  */
 export function deserializeTransitionData(
   data: number[] | Uint8Array
@@ -155,49 +137,16 @@ export function deserializeTransitionData(
     block_number: BigInt(rawTransitionData.block_number),
     sequence: BigInt(rawTransitionData.sequence),
     method: rawTransitionData.method,
-    index: rawTransitionData.index,
-    value: BigInt(rawTransitionData.value),
-    old_value: BigInt(rawTransitionData.old_value),
-    old_commitment: {
-      actions_commitment: scalar(
-        commitmentArrayToBigInt(
-          rawTransitionData.old_commitment.actions_commitment.bytes
-        )
-      ),
-      actions_sequence: BigInt(
-        rawTransitionData.old_commitment.actions_sequence
-      ),
-      state_commitment: scalar(
-        commitmentArrayToBigInt(
-          rawTransitionData.old_commitment.state_commitment.bytes
-        )
-      ),
-    },
-    new_commitment: {
-      actions_commitment: scalar(
-        commitmentArrayToBigInt(
-          rawTransitionData.new_commitment.actions_commitment.bytes
-        )
-      ),
-      actions_sequence: BigInt(
-        rawTransitionData.new_commitment.actions_sequence
-      ),
-      state_commitment: scalar(
-        commitmentArrayToBigInt(
-          rawTransitionData.new_commitment.state_commitment.bytes
-        )
-      ),
+    event: {
+      game_id: gameIdToUint8Array(rawTransitionData.event.game_id),
+      rule_id: BigInt(rawTransitionData.event.rule_id),
+      time_passed: rawTransitionData.event.time_passed.map(BigInt),
+      resources: rawTransitionData.event.resources.map(BigInt),
+      click_pow: rawTransitionData.event.click_pow.map(BigInt),
+      rps: rawTransitionData.event.rps.map(BigInt),
+      storages: rawTransitionData.event.storages.map(BigInt),
     },
   };
-}
-
-/**
- * Convert Fr.Canonical.provable back to bigint
- * @param provable - Fr.Canonical.provable object
- * @returns BigInt representation
- */
-function provableToBigInt(provable: CanonicalElement): bigint {
-  return provable.toBigInt();
 }
 
 /**
@@ -213,36 +162,14 @@ export function serializeTransitionData(
     block_number: transitionData.block_number.toString(),
     sequence: transitionData.sequence.toString(),
     method: transitionData.method,
-    index: transitionData.index,
-    value: transitionData.value.toString(),
-    old_value: transitionData.old_value.toString(),
-    old_commitment: {
-      actions_commitment: {
-        bytes: bigIntToCommitmentArray(
-          provableToBigInt(transitionData.old_commitment.actions_commitment)
-        ),
-      },
-      actions_sequence:
-        transitionData.old_commitment.actions_sequence.toString(),
-      state_commitment: {
-        bytes: bigIntToCommitmentArray(
-          provableToBigInt(transitionData.old_commitment.state_commitment)
-        ),
-      },
-    },
-    new_commitment: {
-      actions_commitment: {
-        bytes: bigIntToCommitmentArray(
-          provableToBigInt(transitionData.new_commitment.actions_commitment)
-        ),
-      },
-      actions_sequence:
-        transitionData.new_commitment.actions_sequence.toString(),
-      state_commitment: {
-        bytes: bigIntToCommitmentArray(
-          provableToBigInt(transitionData.new_commitment.state_commitment)
-        ),
-      },
+    event: {
+      game_id: uint8ArrayToGameId(transitionData.event.game_id),
+      rule_id: transitionData.event.rule_id.toString(),
+      time_passed: transitionData.event.time_passed.map((v) => v.toString()),
+      resources: transitionData.event.resources.map((v) => v.toString()),
+      click_pow: transitionData.event.click_pow.map((v) => v.toString()),
+      rps: transitionData.event.rps.map((v) => v.toString()),
+      storages: transitionData.event.storages.map((v) => v.toString()),
     },
   };
 
@@ -250,76 +177,28 @@ export function serializeTransitionData(
 }
 
 /**
- * Create AddProgramCommitment objects from TransitionData
- */
-export interface ProcessedCommitments {
-  oldCommitment: {
-    actionsCommitment: CanonicalElement;
-    stateCommitment: CanonicalElement;
-    actionsSequence: UInt64;
-    actionsRPower: CanonicalElement;
-  };
-  newCommitment: {
-    actionsCommitment: CanonicalElement;
-    stateCommitment: CanonicalElement;
-    actionsSequence: UInt64;
-    actionsRPower: CanonicalElement;
-  };
-}
-
-/**
- * Process TransitionData into commitment objects ready for AddProgram
- * @param transitionData - Deserialized TransitionData with provable commitments
- * @returns Processed commitment objects
- */
-export function processCommitments(
-  transitionData: TransitionData
-): ProcessedCommitments {
-  return {
-    oldCommitment: {
-      actionsCommitment: transitionData.old_commitment.actions_commitment,
-      stateCommitment: transitionData.old_commitment.state_commitment,
-      actionsSequence: UInt64.from(
-        transitionData.old_commitment.actions_sequence
-      ),
-      actionsRPower: rScalarPow(transitionData.old_commitment.actions_sequence),
-    },
-    newCommitment: {
-      actionsCommitment: transitionData.new_commitment.actions_commitment,
-      stateCommitment: transitionData.new_commitment.state_commitment,
-      actionsSequence: UInt64.from(
-        transitionData.new_commitment.actions_sequence
-      ),
-      actionsRPower: rScalarPow(transitionData.new_commitment.actions_sequence),
-    },
-  };
-}
-
-/**
- * Helper function to convert bigint to hex string
- * @param element - bigint (bigint) representing an Element<Scalar>
+ * Helper function to convert game ID to hex string
+ * @param gameId - Uint8Array representing game ID
  * @returns Hex string representation
  */
-export function elementToHex(element: bigint | number[]): string {
-  if (typeof element === "bigint") {
-    // Convert bigint to hex with proper padding
-    return "0x" + element.toString(16).padStart(64, "0");
-  } else {
-    // Legacy support for number arrays
-    return "0x" + element.map((b) => b.toString(16).padStart(2, "0")).join("");
-  }
+export function gameIdToHex(gameId: Uint8Array): string {
+  return "0x" + Array.from(gameId).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
- * Helper function to convert hex string to bigint
+ * Helper function to convert hex string to game ID
  * @param hex - Hex string (with or without 0x prefix)
- * @returns bigint (bigint)
+ * @returns Uint8Array game ID
  */
-export function hexToElement(hex: string): bigint {
+export function hexToGameId(hex: string): Uint8Array {
   const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
   if (cleanHex.length !== 64) {
-    throw new Error("Element<Scalar> hex must be 64 characters (32 bytes)");
+    throw new Error("Game ID hex must be 64 characters (32 bytes)");
   }
 
-  return BigInt("0x" + cleanHex);
+  const bytes = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    bytes[i] = parseInt(cleanHex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
 }

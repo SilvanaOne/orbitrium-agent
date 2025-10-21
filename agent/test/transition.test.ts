@@ -1,106 +1,172 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { deserializeTransitionData, TransitionData } from "../src/transition.js";
+import { deserializeTransitionData, TransitionData, gameIdToHex } from "../src/transition.js";
 
 describe("TransitionData Deserialization", () => {
-  it("should deserialize TransitionData from JobCreatedEvent data", () => {
-    // Fresh data from current rollup test (add operation: index 1, value 1)
+  it("should deserialize TransitionData with UpdateEvent from JobCreatedEvent data", () => {
+    // Mock data for orbitrium click operation with UpdateEvent
+    // TransitionData: block_number=1, sequence=0, method="click", event=UpdateEvent{...}
+    // UpdateEvent: game_id (32 bytes), rule_id=1, vectors with sample data
     const jobCreatedEventData = [
-      1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,97,100,100,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,116,105,110,105,1,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,32,91,30,149,212,112,213,95,240,231,74,108,68,19,170,163,45,205,194,243,248,43,83,174,52,97,32,156,4,113,185,131,164,2,0,0,0,0,0,0,0,32,20,159,168,194,9,171,101,95,212,128,163,175,247,209,109,199,43,106,57,67,228,185,95,207,121,9,244,45,156,23,165,83
+      // block_number (u64) = 1
+      1, 0, 0, 0, 0, 0, 0, 0,
+      // sequence (u64) = 0
+      0, 0, 0, 0, 0, 0, 0, 0,
+      // method (String) = "click" (5 bytes + length prefix)
+      5, 99, 108, 105, 99, 107,
+      // event (UpdateEvent):
+      // game_id (32 bytes) - mock ID
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      // rule_id (u64) = 1
+      1, 0, 0, 0, 0, 0, 0, 0,
+      // time_passed (vector<u64>) - length=2, values=[100, 200]
+      2,
+      100, 0, 0, 0, 0, 0, 0, 0,
+      200, 0, 0, 0, 0, 0, 0, 0,
+      // resources (vector<u64>) - length=2, values=[1000, 2000]
+      2,
+      1000 & 0xff, (1000 >> 8) & 0xff, 0, 0, 0, 0, 0, 0,
+      2000 & 0xff, (2000 >> 8) & 0xff, 0, 0, 0, 0, 0, 0,
+      // click_pow (vector<u64>) - length=2, values=[50, 75]
+      2,
+      50, 0, 0, 0, 0, 0, 0, 0,
+      75, 0, 0, 0, 0, 0, 0, 0,
+      // rps (vector<u64>) - length=2, values=[10, 20]
+      2,
+      10, 0, 0, 0, 0, 0, 0, 0,
+      20, 0, 0, 0, 0, 0, 0, 0,
+      // storages (vector<u64>) - length=2, values=[500, 600]
+      2,
+      500 & 0xff, (500 >> 8) & 0xff, 0, 0, 0, 0, 0, 0,
+      600 & 0xff, (600 >> 8) & 0xff, 0, 0, 0, 0, 0, 0,
     ];
 
     const transitionData: TransitionData = deserializeTransitionData(jobCreatedEventData);
 
-
-    // Basic assertions using actual values from Sui rollup test
+    // Basic assertions
     assert.strictEqual(transitionData.block_number, 1n, "Block number should be 1");
     assert.strictEqual(transitionData.sequence, 0n, "Sequence should be 0");
-    assert.strictEqual(transitionData.method, "add", "Method should be add");
-    assert.strictEqual(transitionData.index, 1, "Index should be 1");
-    assert.strictEqual(transitionData.value, 1n, "Value should be 1");
-    assert.strictEqual(transitionData.old_value, 0n, "Old value should be 0");
-    // Exact assertions based on current rollup test values
-    assert.strictEqual(transitionData.old_commitment.actions_sequence, 1n, "Old actions sequence should be 1");
-    assert.strictEqual(transitionData.new_commitment.actions_sequence, 2n, "New actions sequence should be 2");
-    
-    // Exact commitment value assertions from current rollup test
-    const oldActionsCommitmentBigInt = transitionData.old_commitment.actions_commitment.toBigInt();
-    const oldStateCommitmentBigInt = transitionData.old_commitment.state_commitment.toBigInt();
-    const newActionsCommitmentBigInt = transitionData.new_commitment.actions_commitment.toBigInt();
-    const newStateCommitmentBigInt = transitionData.new_commitment.state_commitment.toBigInt();
-    
-    // Assert exact commitment values from current rollup test
-    assert.strictEqual(oldActionsCommitmentBigInt, 6248033897n, "Old actions commitment should match rollup test value");
-    assert.strictEqual(oldStateCommitmentBigInt, 0n, "Old state commitment should match rollup test value");
-    assert.strictEqual(newActionsCommitmentBigInt, 41214508720617712057645573797159612427662368158173771695682160867969771078564n, "New actions commitment should match rollup test value");
-    assert.strictEqual(newStateCommitmentBigInt, 9328350379599323964930814050805468085812740822563546972518289385183440774483n, "New state commitment should match rollup test value");
-    
-    // Check commitment objects are ProvableElements 
-    assert.ok(typeof transitionData.old_commitment.actions_commitment.toBigInt === 'function', "Old actions commitment should be ProvableElement");
-    assert.ok(typeof transitionData.old_commitment.state_commitment.toBigInt === 'function', "Old state commitment should be ProvableElement");
-    assert.ok(typeof transitionData.new_commitment.actions_commitment.toBigInt === 'function', "New actions commitment should be ProvableElement");
-    assert.ok(typeof transitionData.new_commitment.state_commitment.toBigInt === 'function', "New state commitment should be ProvableElement");
+    assert.strictEqual(transitionData.method, "click", "Method should be click");
 
-  });
+    // UpdateEvent assertions
+    assert.ok(transitionData.event !== undefined, "Event should exist");
+    assert.ok(transitionData.event.game_id instanceof Uint8Array, "Game ID should be Uint8Array");
+    assert.strictEqual(transitionData.event.game_id.length, 32, "Game ID should be 32 bytes");
+    assert.strictEqual(transitionData.event.rule_id, 1n, "Rule ID should be 1");
 
-  it("should match exact bigint values from Sui rollup test", () => {
-    // Fresh data from current rollup test (same as first test)
-    const jobCreatedEventData = [
-      1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,97,100,100,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,116,105,110,105,1,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,32,91,30,149,212,112,213,95,240,231,74,108,68,19,170,163,45,205,194,243,248,43,83,174,52,97,32,156,4,113,185,131,164,2,0,0,0,0,0,0,0,32,20,159,168,194,9,171,101,95,212,128,163,175,247,209,109,199,43,106,57,67,228,185,95,207,121,9,244,45,156,23,165,83
-    ];
+    // Vector field assertions
+    assert.ok(Array.isArray(transitionData.event.time_passed), "time_passed should be array");
+    assert.strictEqual(transitionData.event.time_passed.length, 2, "time_passed should have 2 elements");
+    assert.strictEqual(transitionData.event.time_passed[0], 100n, "time_passed[0] should be 100");
+    assert.strictEqual(transitionData.event.time_passed[1], 200n, "time_passed[1] should be 200");
 
-    const transitionData: TransitionData = deserializeTransitionData(jobCreatedEventData);
+    assert.ok(Array.isArray(transitionData.event.resources), "resources should be array");
+    assert.strictEqual(transitionData.event.resources.length, 2, "resources should have 2 elements");
+    assert.strictEqual(transitionData.event.resources[0], 1000n, "resources[0] should be 1000");
+    assert.strictEqual(transitionData.event.resources[1], 2000n, "resources[1] should be 2000");
 
-    // Get bigint values directly from ProvableElements
-    const oldActionsCommitmentBigInt = transitionData.old_commitment.actions_commitment.toBigInt();
-    const oldStateCommitmentBigInt = transitionData.old_commitment.state_commitment.toBigInt();
-    const newActionsCommitmentBigInt = transitionData.new_commitment.actions_commitment.toBigInt();
-    const newStateCommitmentBigInt = transitionData.new_commitment.state_commitment.toBigInt();
+    assert.ok(Array.isArray(transitionData.event.click_pow), "click_pow should be array");
+    assert.strictEqual(transitionData.event.click_pow.length, 2, "click_pow should have 2 elements");
+    assert.strictEqual(transitionData.event.click_pow[0], 50n, "click_pow[0] should be 50");
+    assert.strictEqual(transitionData.event.click_pow[1], 75n, "click_pow[1] should be 75");
 
+    assert.ok(Array.isArray(transitionData.event.rps), "rps should be array");
+    assert.strictEqual(transitionData.event.rps.length, 2, "rps should have 2 elements");
+    assert.strictEqual(transitionData.event.rps[0], 10n, "rps[0] should be 10");
+    assert.strictEqual(transitionData.event.rps[1], 20n, "rps[1] should be 20");
 
-    // Assert exact matches with Sui rollup test values
-    assert.strictEqual(oldActionsCommitmentBigInt, 6248033897n, "Old actions commitment should match Sui value");
-    assert.strictEqual(oldStateCommitmentBigInt, 0n, "Old state commitment should match Sui value");
-    assert.strictEqual(newActionsCommitmentBigInt, 41214508720617712057645573797159612427662368158173771695682160867969771078564n, "New actions commitment should match Sui value");
-    assert.strictEqual(newStateCommitmentBigInt, 9328350379599323964930814050805468085812740822563546972518289385183440774483n, "New state commitment should match Sui value");
-
+    assert.ok(Array.isArray(transitionData.event.storages), "storages should be array");
+    assert.strictEqual(transitionData.event.storages.length, 2, "storages should have 2 elements");
+    assert.strictEqual(transitionData.event.storages[0], 500n, "storages[0] should be 500");
+    assert.strictEqual(transitionData.event.storages[1], 600n, "storages[1] should be 600");
   });
 
   it("should have correct field types and structure", () => {
-    // Fresh data from current rollup test (same as other tests) 
+    // Same mock data as first test
     const jobCreatedEventData = [
-      1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,97,100,100,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,116,105,110,105,1,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,32,91,30,149,212,112,213,95,240,231,74,108,68,19,170,163,45,205,194,243,248,43,83,174,52,97,32,156,4,113,185,131,164,2,0,0,0,0,0,0,0,32,20,159,168,194,9,171,101,95,212,128,163,175,247,209,109,199,43,106,57,67,228,185,95,207,121,9,244,45,156,23,165,83
+      1, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      5, 99, 108, 105, 99, 107,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      1, 0, 0, 0, 0, 0, 0, 0,
+      2,
+      100, 0, 0, 0, 0, 0, 0, 0,
+      200, 0, 0, 0, 0, 0, 0, 0,
+      2,
+      1000 & 0xff, (1000 >> 8) & 0xff, 0, 0, 0, 0, 0, 0,
+      2000 & 0xff, (2000 >> 8) & 0xff, 0, 0, 0, 0, 0, 0,
+      2,
+      50, 0, 0, 0, 0, 0, 0, 0,
+      75, 0, 0, 0, 0, 0, 0, 0,
+      2,
+      10, 0, 0, 0, 0, 0, 0, 0,
+      20, 0, 0, 0, 0, 0, 0, 0,
+      2,
+      500 & 0xff, (500 >> 8) & 0xff, 0, 0, 0, 0, 0, 0,
+      600 & 0xff, (600 >> 8) & 0xff, 0, 0, 0, 0, 0, 0,
     ];
 
     const transitionData: TransitionData = deserializeTransitionData(jobCreatedEventData);
 
-    // Verify all fields are present and have expected types
+    // Verify top-level fields are present and have expected types
     assert.ok(typeof transitionData.block_number === "bigint", "Block number should be bigint");
     assert.ok(typeof transitionData.sequence === "bigint", "Sequence should be bigint");
     assert.ok(typeof transitionData.method === "string", "Method should be string");
-    assert.ok(typeof transitionData.index === "number", "Index should be number");
-    assert.ok(typeof transitionData.value === "bigint", "Value should be bigint");
-    assert.ok(typeof transitionData.old_value === "bigint", "Old value should be bigint");
-    assert.ok(typeof transitionData.old_commitment.actions_commitment.toBigInt === "function", "Old actions commitment should be ProvableElement");
-    assert.ok(typeof transitionData.old_commitment.state_commitment.toBigInt === "function", "Old state commitment should be ProvableElement");
-    assert.ok(typeof transitionData.old_commitment.actions_sequence === "bigint", "Old actions sequence should be bigint");
-    assert.ok(typeof transitionData.new_commitment.actions_commitment.toBigInt === "function", "New actions commitment should be ProvableElement");
-    assert.ok(typeof transitionData.new_commitment.state_commitment.toBigInt === "function", "New state commitment should be ProvableElement");
-    assert.ok(typeof transitionData.new_commitment.actions_sequence === "bigint", "New actions sequence should be bigint");
 
-    // Verify nested structure exists
-    assert.ok(transitionData.old_commitment !== undefined, "Old commitment should exist");
-    assert.ok(transitionData.new_commitment !== undefined, "New commitment should exist");
-    
-    // Verify exact values match expected (same as other tests)
+    // Verify event structure exists and has correct types
+    assert.ok(transitionData.event !== undefined, "Event should exist");
+    assert.ok(transitionData.event.game_id instanceof Uint8Array, "Game ID should be Uint8Array");
+    assert.ok(typeof transitionData.event.rule_id === "bigint", "Rule ID should be bigint");
+    assert.ok(Array.isArray(transitionData.event.time_passed), "time_passed should be array");
+    assert.ok(Array.isArray(transitionData.event.resources), "resources should be array");
+    assert.ok(Array.isArray(transitionData.event.click_pow), "click_pow should be array");
+    assert.ok(Array.isArray(transitionData.event.rps), "rps should be array");
+    assert.ok(Array.isArray(transitionData.event.storages), "storages should be array");
+
+    // Verify array elements are bigints
+    transitionData.event.time_passed.forEach((val, idx) => {
+      assert.ok(typeof val === "bigint", `time_passed[${idx}] should be bigint`);
+    });
+    transitionData.event.resources.forEach((val, idx) => {
+      assert.ok(typeof val === "bigint", `resources[${idx}] should be bigint`);
+    });
+    transitionData.event.click_pow.forEach((val, idx) => {
+      assert.ok(typeof val === "bigint", `click_pow[${idx}] should be bigint`);
+    });
+    transitionData.event.rps.forEach((val, idx) => {
+      assert.ok(typeof val === "bigint", `rps[${idx}] should be bigint`);
+    });
+    transitionData.event.storages.forEach((val, idx) => {
+      assert.ok(typeof val === "bigint", `storages[${idx}] should be bigint`);
+    });
+
+    // Verify exact values match expected
     assert.strictEqual(transitionData.block_number, 1n, "Block number should be 1n");
     assert.strictEqual(transitionData.sequence, 0n, "Sequence should be 0n");
-    assert.strictEqual(transitionData.method, "add", "Method should be add");
-    assert.strictEqual(transitionData.index, 1, "Index should be 1");
-    assert.strictEqual(transitionData.value, 1n, "Value should be 1n"); 
-    assert.strictEqual(transitionData.old_value, 0n, "Old value should be 0n");
-    assert.strictEqual(transitionData.old_commitment.actions_sequence, 1n, "Old actions sequence should be 1n");
-    assert.strictEqual(transitionData.new_commitment.actions_sequence, 2n, "New actions sequence should be 2n");
+    assert.strictEqual(transitionData.method, "click", "Method should be click");
+  });
 
+  it("should handle gameIdToHex helper function", () => {
+    const mockGameId = new Uint8Array([
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+      0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+    ]);
+
+    const hexString = gameIdToHex(mockGameId);
+    assert.ok(hexString.startsWith("0x"), "Hex string should start with 0x");
+    assert.strictEqual(hexString.length, 66, "Hex string should be 66 characters (0x + 64 hex chars)");
+    assert.strictEqual(
+      hexString,
+      "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
+      "Hex conversion should match expected value"
+    );
   });
 });

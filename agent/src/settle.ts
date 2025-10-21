@@ -1,8 +1,8 @@
 import { JsonProof, verify, PrivateKey, PublicKey, Mina, Cache } from "o1js";
-import { AddProgramProof } from "./circuit.js";
+import { GameProgramProof } from "./circuit.js";
 import { compile } from "./compile.js";
-import { AddContract } from "./contract.js";
-import { checkAddContractDeployment } from "./deploy.js";
+import { GameContract } from "./contract.js";
+import { checkGameContractDeployment } from "./deploy.js";
 import {
   initBlockchain,
   fetchMinaAccount,
@@ -134,7 +134,7 @@ export async function settle(params: SettleParams): Promise<void> {
 
   // Check that the contract is deployed
   console.log("🔍 Checking contract deployment...");
-  const isDeployed = await checkAddContractDeployment({
+  const isDeployed = await checkGameContractDeployment({
     contractAddress,
     adminAddress: settlementAdminAddress,
   });
@@ -147,7 +147,7 @@ export async function settle(params: SettleParams): Promise<void> {
 
   // Create contract instance and fetch current state
   const contractPublicKey = PublicKey.fromBase58(contractAddress);
-  const contract = new AddContract(contractPublicKey);
+  const contract = new GameContract(contractPublicKey);
 
   // Fetch the contract state
   await fetchMinaAccount({ publicKey: contractPublicKey, force: true });
@@ -374,10 +374,10 @@ export async function settle(params: SettleParams): Promise<void> {
 
     // Deserialize the proof with rejection on failure
     console.log("🔐 Deserializing and verifying block proof...");
-    let blockProof: AddProgramProof;
+    let blockProof: GameProgramProof;
 
     try {
-      blockProof = await AddProgramProof.fromJSON(
+      blockProof = await GameProgramProof.fromJSON(
         JSON.parse(proofJson) as JsonProof
       );
     } catch (error) {
@@ -528,17 +528,12 @@ export async function settle(params: SettleParams): Promise<void> {
     console.log(
       `  - Sequence (publicInput): ${blockProof.publicInput.sequence.toBigInt()}`
     );
-    console.log(
-      `  - Sum (publicInput): ${blockProof.publicInput.sum.toBigInt()}`
-    );
+
     console.log(
       `  - Block Number (publicOutput): ${blockProof.publicOutput.blockNumber.toBigInt()}`
     );
     console.log(
       `  - Sequence (publicOutput): ${blockProof.publicOutput.sequence.toBigInt()}`
-    );
-    console.log(
-      `  - Sum (publicOutput): ${blockProof.publicOutput.sum.toBigInt()}`
     );
 
     if (blockProof.publicOutput.blockNumber.toBigInt() !== currentBlockNumber) {
@@ -585,7 +580,7 @@ export async function settle(params: SettleParams): Promise<void> {
 
     // Create and send settlement transaction
     console.log("📝 Creating settlement transaction...");
-    const memo = `Silvana block ${currentBlockNumber} ${
+    const memo = `Orbitrium block ${currentBlockNumber} ${
       numberOfTransactions
         ? "(" + numberOfTransactions.toString() + " txs)"
         : ""
@@ -619,7 +614,7 @@ export async function settle(params: SettleParams): Promise<void> {
       console.time("sent tx");
       const sentTx = await sendTx({
         tx: tx.sign([senderPrivateKey]),
-        description: `Silvana AddContract: settle block ${currentBlockNumber}`,
+        description: `GameContract: settle block ${currentBlockNumber}`,
         wait: false,
         verbose: true,
         retry: 3,

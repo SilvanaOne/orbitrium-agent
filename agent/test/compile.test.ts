@@ -1,44 +1,44 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { AddProgram } from "../src/circuit.js";
+import { GameProgram } from "../src/circuit.js";
 import { initBlockchain } from "@silvana-one/mina-utils";
 import { compile } from "../src/compile.js";
 
-describe("Add Rollup", async () => {
+describe("Game Rollup", async () => {
   it("should get ZkProgram constraints", async () => {
     // Analyze the constraint count for both methods
-    const methods = await AddProgram.analyzeMethods();
-    const addMethodStats = (methods as any).add;
-    const multiplyMethodStats = (methods as any).multiply;
+    const methods = await GameProgram.analyzeMethods();
+    const clickMethodStats = (methods as any).click;
+    const mergeMethodStats = (methods as any).merge;
 
-    console.log(`\n=== ADD METHOD ===`);
-    console.log(`Add constraints: ${addMethodStats.rows}`);
+    console.log(`\n=== CLICK METHOD ===`);
+    console.log(`Click constraints: ${clickMethodStats.rows}`);
     console.log(`Gates breakdown:`);
-    console.log(`  - Total gates: ${addMethodStats.gates.length}`);
+    console.log(`  - Total gates: ${clickMethodStats.gates.length}`);
 
-    const addGateTypes = new Map<string, number>();
-    for (const gate of addMethodStats.gates) {
+    const clickGateTypes = new Map<string, number>();
+    for (const gate of clickMethodStats.gates) {
       const typ = gate?.typ || gate?.type || "Unknown";
-      addGateTypes.set(typ, (addGateTypes.get(typ) || 0) + 1);
+      clickGateTypes.set(typ, (clickGateTypes.get(typ) || 0) + 1);
     }
 
     console.log(`  - Gate types breakdown:`);
-    for (const [type, count] of addGateTypes.entries()) {
+    for (const [type, count] of clickGateTypes.entries()) {
       console.log(`    * ${type}: ${count}`);
     }
     console.log(`\n=== MULTIPLY METHOD ===`);
-    console.log(`Multiply constraints: ${multiplyMethodStats.rows}`);
+    console.log(`Merge constraints: ${mergeMethodStats.rows}`);
     console.log(`Gates breakdown:`);
-    console.log(`  - Total gates: ${multiplyMethodStats.gates.length}`);
+    console.log(`  - Total gates: ${mergeMethodStats.gates.length}`);
 
-    const multiplyGateTypes = new Map<string, number>();
-    for (const gate of multiplyMethodStats.gates) {
+    const mergeGateTypes = new Map<string, number>();
+    for (const gate of mergeMethodStats.gates) {
       const typ = gate?.typ || gate?.type || "Unknown";
-      multiplyGateTypes.set(typ, (multiplyGateTypes.get(typ) || 0) + 1);
+      mergeGateTypes.set(typ, (mergeGateTypes.get(typ) || 0) + 1);
     }
 
     console.log(`  - Gate types breakdown:`);
-    for (const [type, count] of multiplyGateTypes.entries()) {
+    for (const [type, count] of mergeGateTypes.entries()) {
       console.log(`    * ${type}: ${count}`);
     }
   });

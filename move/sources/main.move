@@ -1,5 +1,7 @@
 module orbitrium::main;
 
+use commitment::action::create_action;
+use commitment::state::commit_action;
 use coordination::app_instance::{AppInstance, AppInstanceCap};
 use coordination::registry::{
     SilvanaRegistry,
@@ -30,6 +32,14 @@ public struct AppCreatedEvent has copy, drop {
 
 public struct ClickEvent has copy, drop {
     app_address: address,
+    event: UpdateEvent,
+}
+
+// Struct for serializing transition data
+public struct TransitionData has copy, drop {
+    block_number: u64,
+    sequence: u64,
+    method: String,
     event: UpdateEvent,
 }
 
@@ -76,6 +86,43 @@ public fun create_app(
     app
 }
 
+public fun init_app_with_instance(
+    app: &App,
+    instance: &mut AppInstance,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    // Initialize with sum equal to 0 as there are no elements yet
+    let action = create_action(b"init".to_string(), vector[]);
+    instance.state_mut(&app.instance_cap).commit_action(action, &vector[], ctx);
+
+    coordination::app_instance::create_app_job(
+        instance,
+        b"init".to_string(),
+        option::some(b"Deploy SmartContract".to_string()),
+        option::none(), // block_number from instance
+        option::none(), // sequence
+        option::none(), // sequences1
+        option::none(), // sequences2
+        vector[],
+        option::none(), // interval_ms - not periodic
+        option::none(), // next_scheduled_at - not periodic
+        option::none(), // settlement_chain - not settlement job
+        clock,
+        ctx,
+    );
+
+    // Add sequence 0 state to the sequence state manager
+    // No transition data for initial state, so use empty vector
+    coordination::app_instance::increase_sequence(
+        instance,
+        vector[],
+        vector[],
+        clock,
+        ctx,
+    );
+}
+
 public fun click(
     app: &mut App,
     instance: &mut AppInstance,
@@ -94,9 +141,15 @@ public fun click(
         signature,
         clock,
     );
-    let transition_data_bytes = bcs::to_bytes(&event);
     let block_number = instance.block_number();
     let sequence = instance.sequence();
+    let transition_data = TransitionData {
+        block_number,
+        sequence,
+        method: b"click".to_string(),
+        event,
+    };
+    let transition_data_bytes = bcs::to_bytes(&transition_data);
 
     coordination::app_instance::create_app_job(
         instance,
@@ -119,9 +172,10 @@ public fun click(
         app_address: app.id.to_address(),
         event,
     });
+
     coordination::app_instance::increase_sequence(
         instance,
-        vector::empty(),
+        vector[],
         transition_data_bytes,
         clock,
         ctx,

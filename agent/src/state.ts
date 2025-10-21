@@ -1,5 +1,6 @@
 import { TransitionData } from "./transition.js";
 import { GameProgramState, GameProgram, GameProgramProof } from "./circuit.js";
+import { ResourceVector } from "./utils/ResourceVector.js";
 import {
   readDataAvailability,
   rejectProof,
@@ -15,8 +16,8 @@ import {
   UInt64,
   VerificationKey,
 } from "o1js";
-import { processCommitments } from "./transition.js";
 import { compile } from "./compile.js";
+import { allRules } from "./utils/Upgrades.js";
 
 export interface SequenceState {
   sequence: number;
@@ -218,8 +219,7 @@ export async function getStateAndProof(params: {
   );
 
   // Initialize state and map - either from data availability or create new
-  let state: AddProgramState;
-  let map: AddMap;
+  let state: GameProgramState;
 
   // Check if the first sequence state has data availability
   if (sortedStates[0].dataAvailability) {
@@ -236,13 +236,12 @@ export async function getStateAndProof(params: {
         console.log(
           `Successfully read data from Walrus, deserializing state...`
         );
-        const deserializedState = AddProgramState.deserialize(
+        const deserializedState = GameProgramState.deserialize(
           readDataResponse.data
         );
-        state = deserializedState.state;
-        map = deserializedState.map;
+        state = deserializedState;
         console.log(
-          `Loaded state from data availability: sequence ${state.sequence.toBigInt()}, sum ${state.sum.toBigInt()}`
+          `Loaded state from data availability: sequence ${state.sequence.toBigInt()}`
         );
       } else {
         console.error(
@@ -256,16 +255,14 @@ export async function getStateAndProof(params: {
     }
   } else {
     // Create initial state (sequence 0)
-    const initialState = AddProgramState.create();
-    state = initialState.state;
-    map = initialState.map;
-    console.log(
-      `Created initial state: sequence ${state.sequence.toBigInt()}, sum ${state.sum.toBigInt()}`
-    );
+    const initialState = GameProgramState.create();
+    state = initialState;
+
+    console.log(`Created initial state: sequence ${state.sequence.toBigInt()}`);
   }
 
   // Process all sequence states sequentially
-  let finalProof: AddProgramProof | undefined = undefined;
+  let finalProof: GameProgramProof | undefined = undefined;
   let startProcessingFromIndex = 0;
   let vkProgram: VerificationKey | undefined = undefined;
 
@@ -311,7 +308,6 @@ export async function getStateAndProof(params: {
     );
 
     // Process commitments for this transition
-    const commitments = processCommitments(transitionData);
     if (shouldProve) {
       console.log(`Setting block number to ${blockNumber}`);
       state.blockNumber = UInt64.from(blockNumber);
@@ -324,67 +320,36 @@ export async function getStateAndProof(params: {
     }
 
     // Apply the operation based on method type
-    if (transitionData.method === "add") {
-      if (shouldProve) {
-        // Generate proof for this sequence
-        console.time(`proving add for sequence ${currentSequence}`);
-        const proofResult = await AddProgram.add(
-          state,
-          UInt32.from(transitionData.index),
-          Field(transitionData.old_value),
-          Field(transitionData.value),
-          map,
-          new AddProgramCommitment(commitments.oldCommitment),
-          new AddProgramCommitment(commitments.newCommitment)
-        );
-        console.timeEnd(`proving add for sequence ${currentSequence}`);
-        finalProof = proofResult.proof;
-        state = proofResult.proof.publicOutput;
-        map = proofResult.auxiliaryOutput;
-      } else {
-        // Use rawMethods for non-proving sequences
-        const result = await AddProgram.rawMethods.add(
-          state,
-          UInt32.from(transitionData.index),
-          Field(transitionData.old_value),
-          Field(transitionData.value),
-          map,
-          new AddProgramCommitment(commitments.oldCommitment),
-          new AddProgramCommitment(commitments.newCommitment)
-        );
-        state = result.publicOutput;
-        map = result.auxiliaryOutput;
+    if (transitionData.method === "click") {
+      console.log(`Processing event ${transitionData.event.rule_id}`);
+      let upgrade = allRules.find(
+        (upgrade: any) => BigInt(upgrade.id) === transitionData.event.rule_id
+      );
+
+      if (!upgrade) {
+        throw new Error(`Upgrade not found: ${transitionData.event.rule_id}`);
       }
-    } else if (transitionData.method === "multiply") {
+      const resources = upgrade.build().resources;
+
       if (shouldProve) {
         // Generate proof for this sequence
-        console.time(`proving multiply for sequence ${currentSequence}`);
-        const proofResult = await AddProgram.multiply(
+        console.time(`proving click for sequence ${currentSequence}`);
+        const proofResult = await GameProgram.click(
           state,
-          UInt32.from(transitionData.index),
-          Field(transitionData.old_value),
-          Field(transitionData.value),
-          map,
-          new AddProgramCommitment(commitments.oldCommitment),
-          new AddProgramCommitment(commitments.newCommitment)
+          resources,
+          ResourceVector.fromBigIntArray(transitionData.event.time_passed)
         );
-        console.timeEnd(`proving multiply for sequence ${currentSequence}`);
+        console.timeEnd(`proving click for sequence ${currentSequence}`);
         finalProof = proofResult.proof;
         state = proofResult.proof.publicOutput;
-        map = proofResult.auxiliaryOutput;
       } else {
         // Use rawMethods for non-proving sequences
-        const result = await AddProgram.rawMethods.multiply(
+        const result = await GameProgram.rawMethods.click(
           state,
-          UInt32.from(transitionData.index),
-          Field(transitionData.old_value),
-          Field(transitionData.value),
-          map,
-          new AddProgramCommitment(commitments.oldCommitment),
-          new AddProgramCommitment(commitments.newCommitment)
+          resources,
+          ResourceVector.fromBigIntArray(transitionData.event.time_passed)
         );
         state = result.publicOutput;
-        map = result.auxiliaryOutput;
       }
     } else {
       throw new Error(`Unsupported method: ${transitionData.method}`);
@@ -415,14 +380,11 @@ export async function getStateAndProof(params: {
       }
     }
 
-    console.log(
-      `Completed sequence ${currentSequence}, new sum: ${state.sum.toBigInt()}`
-    );
+    console.log(`Completed sequence ${currentSequence}`);
   }
 
   return {
     state,
-    map,
     proof: finalProof,
   };
 }

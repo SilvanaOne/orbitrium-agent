@@ -37,8 +37,33 @@ async function agent() {
         );
 
         try {
-          // Check if this is a settle job by app_instance_method
-          if (response.job.appInstanceMethod === "settle") {
+          if (response.job.appInstanceMethod === "init") {
+            console.log("🚀 INIT JOB DETECTED");
+            // Print all job details
+            console.log("=== INIT JOB DETAILS ===");
+            console.log(`Job Sequence: ${response.job.jobSequence}`);
+            console.log(`Job ID: ${response.job.jobId}`);
+            console.log(`Description: ${response.job.description || "none"}`);
+            console.log(`Settlement Chain: ${response.job.chain}`);
+            console.log(`Developer: ${response.job.developer}`);
+            console.log(`Agent: ${response.job.agent}`);
+            console.log(`Agent Method: ${response.job.agentMethod}`);
+            console.log(`App: ${response.job.app}`);
+            console.log(`App Instance: ${response.job.appInstance}`);
+            console.log(
+              `App Instance Method: ${response.job.appInstanceMethod}`
+            );
+            // Complete the job successfully
+            console.log(`\nCompleting init job ${response.job.jobId}...`);
+            const completeResponse = await completeJob();
+            if (completeResponse.success) {
+              console.log(
+                `✅ Init job completed successfully: ${completeResponse.message}`
+              );
+            } else {
+              error(`Failed to complete init job: ${completeResponse.message}`);
+            }
+          } else if (response.job.appInstanceMethod === "settle") {
             console.log("⚖️ SETTLE JOB DETECTED");
 
             // Verify chain is provided for settle jobs
@@ -400,9 +425,7 @@ async function agent() {
               console.log(
                 `Successfully retrieved program state and map from sequence states`
               );
-              console.log(
-                `State available: sum ${result.state.sum.toBigInt()}, Map available: root: ${result.map.root.toBigInt()}`
-              );
+
               console.log(`Total processing time: ${cpuTimeMs}ms`);
 
               if (result.proof) {
@@ -413,13 +436,9 @@ async function agent() {
                 // Serialize proof and state separately
                 const serializedProofAndState = serializeProofAndState(
                   result.proof,
-                  result.state,
-                  result.map
+                  result.state
                 );
-                const serializedStateOnly = serializeState(
-                  result.state,
-                  result.map
-                );
+                const serializedStateOnly = serializeState(result.state);
 
                 console.log(`Serialized proof and state for submission`);
                 console.log(

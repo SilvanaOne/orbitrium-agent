@@ -311,7 +311,43 @@ export async function createAppInstance(params: {
 
   console.log("Metadata and kv added successfully");
 
-  console.log("App created successfully");
+  // Initialize the app with the instance
+  console.log("Initializing app with instance...");
+  const initTx = new Transaction();
+
+  // public fun init_app_with_instance(app: &App, instance: &mut AppInstance, clock: &Clock, ctx: &mut TxContext)
+  initTx.moveCall({
+    target: `${packageID}::main::init_app_with_instance`,
+    arguments: [
+      initTx.object(appID),
+      initTx.object(appInstanceID),
+      initTx.object(SUI_CLOCK_OBJECT_ID),
+    ],
+  });
+
+  initTx.setSender(address);
+  initTx.setGasBudget(100_000_000);
+
+  const initResult = await executeTx({
+    tx: initTx,
+    keyPair,
+  });
+
+  if (!initResult) {
+    throw new Error("Failed to initialize app");
+  }
+
+  const initWaitResult = await waitTx(initResult.digest);
+  if (initWaitResult.errors) {
+    console.log(
+      `Errors for init tx ${initResult.digest}:`,
+      initWaitResult.errors
+    );
+    throw new Error("Failed to initialize app");
+  }
+
+  console.log("App initialized successfully");
+
   console.log("App ID:", appID);
   return appID;
 }

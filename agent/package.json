@@ -9,11 +9,10 @@
     "docker": "docker compose up build --build --remove-orphans",
     "test": "NODE_NO_WARNINGS=1 node --loader=ts-node/esm --enable-source-maps -r dotenv/config --require dotenv/config  --env-file=.env --env-file=.env.app --test",
     "state": "npm run test test/state.test.ts",
-    "add": "npm run test test/add.test.ts",
+    "click": "npm run test test/click.test.ts",
     "batch": "npm run test test/batch.test.ts",
     "app": "npm run test test/app.test.ts",
-    "deploy": "MINA_CHAIN=mina:devnet npm run test test/deploy.test.ts",
-    "deploy:zeko": "MINA_CHAIN=zeko:testnet npm run test test/deploy.test.ts",
+    "deploy": "MINA_CHAIN=zeko:testnet npm run test test/deploy.test.ts",
     "compile": "npm run test test/compile.test.ts",
     "update": "ncu -i"
   },

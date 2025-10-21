@@ -5,7 +5,7 @@ import {
   AccountUpdate,
   PublicKey,
 } from "o1js";
-import { AddContract } from "./contract.js";
+import { GameContract } from "./contract.js";
 import {
   fetchMinaAccount,
   initBlockchain,
@@ -17,7 +17,7 @@ import { compile } from "./compile.js";
 
 const expectedTxStatus = "pending";
 
-export async function deployAddContract(): Promise<{
+export async function deployGameContract(): Promise<{
   chain: CanonicalBlockchain;
   contractAddress: string;
   adminAddress: string;
@@ -25,17 +25,13 @@ export async function deployAddContract(): Promise<{
   verificationKey: VerificationKey;
   nonce: number;
 }> {
-  console.time("AddContract deployment");
-  console.log("🚀 Starting AddContract deployment...");
+  console.time("GameContract deployment");
+  console.log("🚀 Starting GameContract deployment...");
   // Get chain from environment
   const chain: CanonicalBlockchain = process.env.MINA_CHAIN as
-    | "mina:devnet"
     | "zeko:testnet"
     | "mina:mainnet";
-  if (
-    !chain ||
-    !["mina:devnet", "zeko:testnet", "mina:mainnet"].includes(chain)
-  ) {
+  if (!chain || !["zeko:testnet", "mina:mainnet"].includes(chain)) {
     console.error(`Invalid or missing MINA_CHAIN: ${chain}`);
   }
 
@@ -90,7 +86,7 @@ export async function deployAddContract(): Promise<{
   const currentNonce = Number(account.nonce.toBigint());
 
   // Create the contract instance
-  const contract = new AddContract(contractPublicKey);
+  const contract = new GameContract(contractPublicKey);
 
   // Create deployment transaction
   console.log("\n📝 Creating deployment transaction...");
@@ -98,7 +94,7 @@ export async function deployAddContract(): Promise<{
     {
       sender: deployerPublicKey,
       fee: 200_000_000,
-      memo: "Deploy Silvana Contract",
+      memo: "Deploy Orbitrium Contract",
     },
     async () => {
       // Fund the new account
@@ -113,7 +109,7 @@ export async function deployAddContract(): Promise<{
       // Deploy the contract
       await contract.deploy({
         admin: adminPublicKey,
-        uri: "Silvana AddContract",
+        uri: "Orbitrium Game Contract",
       });
     }
   );
@@ -129,14 +125,14 @@ export async function deployAddContract(): Promise<{
   console.time("sent tx");
   const sentTx = await sendTx({
     tx: tx.sign([deployerPrivateKey, contractPrivateKey]),
-    description: "Deploy Silvana Contract",
+    description: "Deploy Orbitrium Contract",
     wait: false,
     verbose: true,
   });
   console.timeEnd("sent tx");
   if (sentTx?.status !== expectedTxStatus) {
     console.error("Transaction failed:", sentTx);
-    throw new Error(`Deploy AddContract failed: ${sentTx?.status}`);
+    throw new Error(`Deploy GameContract failed: ${sentTx?.status}`);
   }
 
   const txHash = sentTx.hash;
@@ -145,7 +141,7 @@ export async function deployAddContract(): Promise<{
   console.log(`  Contract Address: ${contractPublicKey.toBase58()}`);
   console.log(`  Admin Address: ${adminPublicKey.toBase58()}`);
 
-  console.timeEnd("AddContract deployment");
+  console.timeEnd("GameContract deployment");
 
   // The nonce after this transaction will be currentNonce + 1
   const nonce = currentNonce + 1;
@@ -160,17 +156,17 @@ export async function deployAddContract(): Promise<{
   };
 }
 
-export async function checkAddContractDeployment(params: {
+export async function checkGameContractDeployment(params: {
   contractAddress: string;
   adminAddress: string;
 }): Promise<boolean> {
   const { contractAddress, adminAddress } = params;
-  console.log("🔍 Checking AddContract deployment...");
+  console.log("🔍 Checking GameContract deployment...");
   console.log(`  Contract Address: ${contractAddress}`);
   console.log(`  Admin Address: ${adminAddress}`);
 
   const contractPublicKey = PublicKey.fromBase58(contractAddress);
-  const contract = new AddContract(contractPublicKey);
+  const contract = new GameContract(contractPublicKey);
 
   // Try to fetch the contract account
   await fetchMinaAccount({ publicKey: contractPublicKey, force: false });
@@ -195,7 +191,6 @@ export async function checkAddContractDeployment(params: {
   console.log(`  Admin: ${onChainAdmin.toBase58()}`);
   console.log(`  Block Number: ${contract.blockNumber.get().toString()}`);
   console.log(`  Sequence: ${contract.sequence.get().toString()}`);
-  console.log(`  Sum: ${contract.sum.get().toString()}`);
 
   return true;
 }

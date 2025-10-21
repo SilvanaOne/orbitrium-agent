@@ -42,7 +42,6 @@ export class GameProgramState extends Struct({
 const clickMethod = (
   gameState: GameState,
   rule: ResourceVector,
-  ruleSignature: Signature,
   timePassed: ResourceVector
 ): GameState => {
   const generatedResources = gameState.resourcesPerSecond.vectorMul(timePassed);
@@ -73,19 +72,13 @@ export const GameProgram = ZkProgram({
   publicOutput: GameProgramState,
   methods: {
     click: {
-      privateInputs: [ResourceVector, Signature, ResourceVector],
+      privateInputs: [ResourceVector, ResourceVector],
       async method(
         input: GameProgramState,
         rule: ResourceVector,
-        ruleSignature: Signature,
         timePassed: ResourceVector
       ) {
-        const newGameState = clickMethod(
-          input.gameState,
-          rule,
-          ruleSignature,
-          timePassed
-        );
+        const newGameState = clickMethod(input.gameState, rule, timePassed);
         return {
           publicOutput: new GameProgramState({
             blockNumber: input.blockNumber,
