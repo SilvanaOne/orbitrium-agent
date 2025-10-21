@@ -14,7 +14,8 @@
     "app": "npm run test test/app.test.ts",
     "deploy": "MINA_CHAIN=zeko:testnet npm run test test/deploy.test.ts",
     "compile": "npm run test test/compile.test.ts",
-    "update": "ncu -i"
+    "update": "ncu -i",
+    "update-agent": "npm run test test/update.test.ts"
   },
   "node": {
     "version": ">=22.0.0"

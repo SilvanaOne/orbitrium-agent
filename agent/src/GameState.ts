@@ -53,6 +53,14 @@ export class GameState extends Struct({
       .and(this.lastClaimTime.equals(other.lastClaimTime));
   }
 
+  static assertEquals(a: GameState, b: GameState) {
+    ResourceVector.assertEquals(a.resources, b.resources);
+    ResourceVector.assertEquals(a.storages, b.storages);
+    ResourceVector.assertEquals(a.resourcesPerSecond, b.resourcesPerSecond);
+    ResourceVector.assertEquals(a.clickPower, b.clickPower);
+    ResourceVector.assertEquals(a.lastClaimTime, b.lastClaimTime);
+  }
+
   serialize() {
     return JSON.stringify({
       resources: this.resources.toString(),

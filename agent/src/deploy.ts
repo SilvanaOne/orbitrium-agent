@@ -169,7 +169,12 @@ export async function checkGameContractDeployment(params: {
   const contract = new GameContract(contractPublicKey);
 
   // Try to fetch the contract account
-  await fetchMinaAccount({ publicKey: contractPublicKey, force: false });
+  console.log("🔍 Fetching contract account...", contractPublicKey.toBase58());
+  const account = await fetchMinaAccount({
+    publicKey: contractPublicKey,
+    force: false,
+  });
+  console.log("✅ Contract account fetched successfully!", account);
 
   if (!Mina.hasAccount(contractPublicKey)) {
     console.log("❌ Contract account not found on chain");

@@ -10,7 +10,6 @@ COPY test ./test/
 COPY cache ./cache
 COPY node_modules ./node_modules
 COPY dist ./dist
-COPY src/zeko ./dist/zeko/
 RUN npm --version
 RUN npm run build
 RUN echo "✅ Build completed"

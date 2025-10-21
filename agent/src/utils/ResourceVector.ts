@@ -29,6 +29,10 @@ export class ResourceVector extends Struct({
     return result;
   }
 
+  static assertEquals(a: ResourceVector, b: ResourceVector) {
+    a.equals(b).assertTrue("Resource vectors are not equal");
+  }
+
   add(other: ResourceVector, overflowCheck: boolean = true) {
     const result = [...Array(RESOURCE_COUNT).fill(Int64.from(0))] as Int64[];
     for (let i = 0; i < RESOURCE_COUNT; i++) {

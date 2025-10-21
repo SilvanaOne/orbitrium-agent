@@ -63,6 +63,7 @@ async function agent() {
             } else {
               error(`Failed to complete init job: ${completeResponse.message}`);
             }
+            continue; // Skip to next job to avoid duplicate completeJob call
           } else if (response.job.appInstanceMethod === "settle") {
             console.log("⚖️ SETTLE JOB DETECTED");
 
@@ -286,13 +287,17 @@ async function agent() {
               console.log(
                 `Merged proof submitted successfully! TX: ${submitProofResponse.txHash}, DA: ${submitProofResponse.daHash}`
               );
-            } catch (error) {
-              console.error(`Failed to merge proofs: ${error}`);
+            } catch (err: any) {
+              console.error(
+                `Failed to merge proofs: ${err?.message || "Unknown error"}`,
+                err
+              );
               // Fail the job instead of completing it
               console.log(
                 `Failing job ${response.job.jobId} due to merge error...`
               );
-              await failJob(`Merge failed: ${error}`);
+              error(`Merge failed: ${err?.message || "Unknown error"}`);
+              await failJob(`Merge failed: ${err?.message || "Unknown error"}`);
               console.log(`Job ${jobCount} failed due to merge error`);
               continue; // Skip to next job without marking as complete
             }

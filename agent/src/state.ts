@@ -41,111 +41,121 @@ export async function merge(params: {
   } = params;
 
   console.log("Starting proof merge...");
-  console.log(`Proof 1 size: ${proof1Serialized.length} chars`);
-  console.log(`Proof 2 size: ${proof2Serialized.length} chars`);
 
-  // Ensure the circuit is compiled
-  const { vkProgram } = await compile();
-  if (!vkProgram) {
-    error("Failed to compile circuit for merging");
-    throw new Error("Failed to compile circuit for merging");
-  }
+  try {
+    console.log(`Proof 1 size: ${proof1Serialized.length} chars`);
+    console.log(`Proof 2 size: ${proof2Serialized.length} chars`);
 
-  // Process both proofs in a loop
-  const proofData = [
-    { serialized: proof1Serialized, sequences: sequences1, name: "proof 1" },
-    { serialized: proof2Serialized, sequences: sequences2, name: "proof 2" },
-  ];
-
-  const proofs: GameProgramProof[] = [];
-
-  for (const { serialized, sequences, name } of proofData) {
-    let proof: GameProgramProof;
-
-    // Deserialize the proof
-    try {
-      console.log(`Deserializing ${name}...`);
-      proof = await GameProgramProof.fromJSON(
-        JSON.parse(serialized) as JsonProof
-      );
-    } catch (err) {
-      error(`Error deserializing ${name}:`, error);
-      const rejectProofResponse = await rejectProof(blockNumber, sequences);
-      if (!rejectProofResponse.success) {
-        throw new Error(
-          `Failed to reject ${name}: ${rejectProofResponse.message}`
-        );
-      }
-      throw error;
+    // Ensure the circuit is compiled
+    const { vkProgram } = await compile();
+    if (!vkProgram) {
+      error("Failed to compile circuit for merging");
+      throw new Error("Failed to compile circuit for merging");
     }
 
-    // Verify the proof
-    console.log(`Verifying ${name}...`);
-    try {
-      const ok = await verify(proof, vkProgram);
-      if (!ok) {
+    // Process both proofs in a loop
+    const proofData = [
+      { serialized: proof1Serialized, sequences: sequences1, name: "proof 1" },
+      { serialized: proof2Serialized, sequences: sequences2, name: "proof 2" },
+    ];
+
+    const proofs: GameProgramProof[] = [];
+
+    for (const { serialized, sequences, name } of proofData) {
+      let proof: GameProgramProof;
+
+      // Deserialize the proof
+      try {
+        console.log(`Deserializing ${name}...`);
+        proof = await GameProgramProof.fromJSON(
+          JSON.parse(serialized) as JsonProof
+        );
+      } catch (err) {
+        error(`Error deserializing ${name}:`, error);
+        const rejectProofResponse = await rejectProof(blockNumber, sequences);
+        if (!rejectProofResponse.success) {
+          throw new Error(
+            `Failed to reject ${name}: ${rejectProofResponse.message}`
+          );
+        }
+        throw error;
+      }
+
+      // Verify the proof
+      console.log(`Verifying ${name}...`);
+      try {
+        const ok = await verify(proof, vkProgram);
+        if (!ok) {
+          await proofEvent({
+            proofEventType: ProofEventType.PROOF_REJECTED,
+            sequences: sequences,
+            blockNumber: blockNumber,
+            dataAvailability: "",
+          });
+          throw new Error(`${name} verification failed`);
+        } else {
+          await proofEvent({
+            proofEventType: ProofEventType.PROOF_VERIFIED,
+            sequences: sequences,
+            blockNumber: blockNumber,
+            dataAvailability: "",
+          });
+        }
+      } catch (err) {
         await proofEvent({
           proofEventType: ProofEventType.PROOF_REJECTED,
           sequences: sequences,
           blockNumber: blockNumber,
           dataAvailability: "",
         });
-        throw new Error(`${name} verification failed`);
-      } else {
-        await proofEvent({
-          proofEventType: ProofEventType.PROOF_VERIFIED,
-          sequences: sequences,
-          blockNumber: blockNumber,
-          dataAvailability: "",
-        });
+        error(`Error verifying ${name}:`, err);
+        const rejectProofResponse = await rejectProof(blockNumber, sequences);
+        if (!rejectProofResponse.success) {
+          throw new Error(
+            `Failed to reject ${name}: ${rejectProofResponse.message}`
+          );
+        }
+        throw error;
       }
-    } catch (err) {
-      await proofEvent({
-        proofEventType: ProofEventType.PROOF_REJECTED,
-        sequences: sequences,
-        blockNumber: blockNumber,
-        dataAvailability: "",
-      });
-      error(`Error verifying ${name}:`, err);
-      const rejectProofResponse = await rejectProof(blockNumber, sequences);
-      if (!rejectProofResponse.success) {
-        throw new Error(
-          `Failed to reject ${name}: ${rejectProofResponse.message}`
-        );
-      }
-      throw error;
+      console.log(`${name} verified`);
+
+      proofs.push(proof);
     }
-    console.log(`${name} verified`);
 
-    proofs.push(proof);
+    const [proof1, proof2] = proofs;
+
+    // Merge the proofs
+    console.log("Merging proofs...");
+    console.time("merging proofs");
+    const mergedProof = await GameProgram.merge(
+      proof1.publicInput,
+      proof1,
+      proof2
+    );
+    console.timeEnd("merging proofs");
+
+    // Verify the merged proof
+    console.log("Verifying merged proof...");
+    const okMerged = await verify(mergedProof.proof, vkProgram);
+    if (!okMerged) {
+      throw new Error("Merged proof verification failed");
+    }
+    console.log("Merged proof verified");
+
+    // Serialize the merged proof
+    const mergedProofSerialized = JSON.stringify({
+      proof: JSON.stringify(mergedProof.proof.toJSON()),
+    });
+    console.log(`Merged proof size: ${mergedProofSerialized.length} chars`);
+
+    return mergedProofSerialized;
+  } catch (err: any) {
+    console.error(`Error merging proofs:`, err);
+    error(`Error merging proofs:`, err);
+    throw err;
+  } finally {
+    console.log("Merging proofs completed");
   }
-
-  const [proof1, proof2] = proofs;
-
-  // Merge the proofs
-  console.time("merging proofs");
-  const mergedProof = await GameProgram.merge(
-    proof1.publicInput,
-    proof1,
-    proof2
-  );
-  console.timeEnd("merging proofs");
-
-  // Verify the merged proof
-  console.log("Verifying merged proof...");
-  const okMerged = await verify(mergedProof.proof, vkProgram);
-  if (!okMerged) {
-    throw new Error("Merged proof verification failed");
-  }
-  console.log("Merged proof verified");
-
-  // Serialize the merged proof
-  const mergedProofSerialized = JSON.stringify({
-    proof: JSON.stringify(mergedProof.proof.toJSON()),
-  });
-  console.log(`Merged proof size: ${mergedProofSerialized.length} chars`);
-
-  return mergedProofSerialized;
 }
 
 export async function getStateAndProof(params: {

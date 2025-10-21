@@ -9,10 +9,10 @@ import {
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { SUI_CLOCK_OBJECT_ID } from "@mysten/sui/utils";
 
-const developerName = "zkNoid";
-const agentName = "OrbitriumAgent";
-const appName = "orbitrium";
-const appDescription = "Orbitrium Game";
+export const developerName = "zkNoid";
+export const agentName = "OrbitriumAgent";
+export const appName = "orbitrium";
+export const appDescription = "Orbitrium Game";
 
 export async function createApp() {
   const suiSecretKey: string = process.env.SUI_SECRET_KEY!;
@@ -212,6 +212,7 @@ export async function createAppInstance(params: {
     : []; // Empty vector if no address
 
   console.log("Creating app instance:", { registryAddress, chains, addresses });
+  const userAddressBytes = new TextEncoder().encode(address);
 
   const app = tx.moveCall({
     target: `${packageID}::main::create_app`,
@@ -220,6 +221,7 @@ export async function createAppInstance(params: {
       tx.pure.vector("string", chains), // vector of settlement chains
       tx.pure("vector<option<string>>", addresses), // vector of Option<String>
       tx.pure("u64", 10 * 60 * 1000), // block creation interval in milliseconds
+      tx.pure.vector("u8", userAddressBytes), // User address
       tx.object(SUI_CLOCK_OBJECT_ID), // Clock reference
     ],
   });
