@@ -11,9 +11,11 @@ import {
   DeployArgs,
   Permissions,
   Struct,
+  Int64,
 } from "o1js";
 import { GameProgramState, GameProgramProof } from "./circuit.js";
 import { GameState } from "./GameState.js";
+import { RESOURCE_COUNT } from "./constants.js";
 
 const initialState = GameProgramState.create().gameState;
 
@@ -33,6 +35,7 @@ export class GameContract extends SmartContract {
   @state(UInt64) sequence = State<UInt64>(UInt64.from(0));
   @state(UInt64) blockNumber = State<UInt64>(UInt64.from(0));
   @state(Field) gameStateCommit = State<Field>(Field(0));
+  @state(Int64) orbsAmount = State<Int64>(Int64.from(0));
 
   /**
    * Deploys the contract with initial settings.
@@ -85,6 +88,11 @@ export class GameContract extends SmartContract {
     const commit = proof.publicOutput.gameState.getCommit();
     this.gameStateCommit.set(commit);
     this.blockNumber.set(proof.publicOutput.blockNumber);
+
+    // Update orbs amount
+    this.orbsAmount.set(
+      proof.publicOutput.gameState.resources.resources[RESOURCE_COUNT - 1]
+    );
 
     this.emitEvent(
       "settle",
