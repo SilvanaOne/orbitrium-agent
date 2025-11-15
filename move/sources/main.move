@@ -7,7 +7,7 @@ use coordination::registry::{
     SilvanaRegistry,
     create_app_instance_from_registry
 };
-use orbitrium::game::{Self, Game, UpdateEvent, create_game};
+use orbitrium::game::{Self, Game, ClickEvent as GameClickEvent, UpgradeEvent as GameUpgradeEvent, create_game};
 use std::string::String;
 use sui::bcs;
 use sui::bls12381::Scalar;
@@ -32,15 +32,27 @@ public struct AppCreatedEvent has copy, drop {
 
 public struct ClickEvent has copy, drop {
     app_address: address,
-    event: UpdateEvent,
+    event: game::ClickEvent,
+}
+
+public struct UpgradeEvent has copy, drop {
+    app_address: address,
+    event: game::UpgradeEvent,
 }
 
 // Struct for serializing transition data
-public struct TransitionData has copy, drop {
+public struct ClickTransitionData has copy, drop {
     block_number: u64,
     sequence: u64,
     method: String,
-    event: UpdateEvent,
+    event: game::ClickEvent,
+}
+
+public struct UpgradeTransitionData has copy, drop {
+    block_number: u64,
+    sequence: u64,
+    method: String,
+    event: game::UpgradeEvent,
 }
 
 public fun create_app(
@@ -67,7 +79,7 @@ public fun create_app(
 
     let app_id = object::new(ctx);
     let app_address = app_id.to_address();
-    let game = create_game(user_address, clock, ctx);
+    let game = create_game(clock, user_address, ctx);
 
     let app = App {
         id: app_id,
@@ -129,6 +141,7 @@ public fun click(
     rule_id: u64,
     targetMagnitude: vector<u64>,
     priceMagnitude: vector<u64>,
+    amount: u64,
     signature: vector<u8>,
     clock: &Clock,
     ctx: &mut TxContext,
@@ -138,12 +151,13 @@ public fun click(
         rule_id,
         targetMagnitude,
         priceMagnitude,
+        amount,
         signature,
         clock,
     );
     let block_number = instance.block_number();
     let sequence = instance.sequence();
-    let transition_data = TransitionData {
+    let transition_data = ClickTransitionData {
         block_number,
         sequence,
         method: b"click".to_string(),
@@ -180,6 +194,92 @@ public fun click(
 
     // Emit event for prover
     event::emit(ClickEvent {
+        app_address: app.id.to_address(),
+        event,
+    });
+
+    coordination::app_instance::increase_sequence(
+        instance,
+        vector[],
+        transition_data_bytes,
+        clock,
+        ctx,
+    );
+}
+
+public fun upgrade(
+    app: &mut App,
+    instance: &mut AppInstance,
+    upgrade_registry: &mut game::UpgradeRegistry,
+    rule_id: u64,
+    priceMagnitude: vector<u64>,
+    rpsPriceMagnitude: vector<u64>,
+    targetMagnitude: vector<u64>,
+    rpsMagnitude: vector<u64>,
+    storagesMagnitude: vector<u64>,
+    clickPowMagnitude: vector<u64>,
+    clickUpgradeLevelInc: vector<u64>,
+    idleUpgradeLevelInc: vector<u64>,
+    storageUpgradeLevelInc: vector<u64>,
+    signature: vector<u8>,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    let event = game::upgrade(
+        &mut app.game,
+        upgrade_registry,
+        rule_id,
+        priceMagnitude,
+        rpsPriceMagnitude,
+        targetMagnitude,
+        rpsMagnitude,
+        storagesMagnitude,
+        clickPowMagnitude,
+        clickUpgradeLevelInc,
+        idleUpgradeLevelInc,
+        storageUpgradeLevelInc,
+        signature,
+        clock,
+    );
+    let block_number = instance.block_number();
+    let sequence = instance.sequence();
+    let transition_data = UpgradeTransitionData {
+        block_number,
+        sequence,
+        method: b"upgrade".to_string(),
+        event,
+    };
+    let transition_data_bytes = bcs::to_bytes(&transition_data);
+    let action = create_action(
+        b"upgrade".to_string(),
+        vector[],
+    );
+    let state = instance.state_mut(&app.instance_cap);
+
+    state.commit_action(
+        action,
+        &vector[],
+        ctx,
+    );
+
+    coordination::app_instance::create_app_job(
+        instance,
+        b"upgrade".to_string(),
+        option::some(b"Upgrade operation job".to_string()),
+        option::some(block_number), // block_number from instance
+        option::some(vector[sequence]),
+        option::none(), // sequences1
+        option::none(), // sequences2
+        transition_data_bytes,
+        option::none(), // interval_ms - not periodic
+        option::none(), // next_scheduled_at - not periodic
+        option::none(), // settlement_chain - not settlement job
+        clock,
+        ctx,
+    );
+
+    // Emit event for prover
+    event::emit(UpgradeEvent {
         app_address: app.id.to_address(),
         event,
     });

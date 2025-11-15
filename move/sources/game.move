@@ -1,7 +1,7 @@
 // ────────────────────────────────────────────────────────────────
-module addr::game;
+module orbitrium::game;
 
-use addr::resource_vector::{Self as RV, ResourceVector};
+use orbitrium::resource_vector::{Self as RV, ResourceVector};
 use std::vector;
 use sui::clock::{Self, Clock};
 use sui::object::{Self, UID, ID};
@@ -56,7 +56,7 @@ public struct UpgradeRegistry has key, store {
     upgrade_used: vector<u64>, // Packed bit vector for gas efficiency
 }
 
-public struct Game has key {
+public struct Game has key, store {
     id: UID,
     user_address: vector<u8>, // Zeko address of the user
     resources: ResourceVector,
@@ -101,13 +101,16 @@ public struct UpgradeEvent has copy, drop {
 
 
 // Create empty new game for user
-public entry fun create_game(clock: &Clock, user_address: vector<u8>, ctx: &mut TxContext) {
+public fun create_game(clock: &Clock, user_address: vector<u8>, ctx: &mut TxContext): Game {
     // Create the upgrade registry as a separate object
     let upgrade_registry = UpgradeRegistry {
         id: object::new(ctx),
         upgrade_used: init_packed_bools(7000),
     };
     let upgrade_registry_id = object::id(&upgrade_registry);
+    
+    // Share the upgrade registry so it can be accessed later
+    sui::transfer::share_object(upgrade_registry);
     
     let game = Game {
         id: object::new(ctx),
@@ -124,9 +127,7 @@ public entry fun create_game(clock: &Clock, user_address: vector<u8>, ctx: &mut 
         upgrade_registry_id,
     };
 
-    let sender = tx_context::sender(ctx);
-    transfer::transfer(upgrade_registry, sender);
-    transfer::transfer(game, sender);
+    game
 }
 
 /**
@@ -148,8 +149,7 @@ public entry fun click(
     amount: u64,
     signature: vector<u8>,
     clock: &Clock,
-    ctx: &mut TxContext,
-) {
+): ClickEvent {
     // #TODO add rule check
     let payload = ClickPayload {
         rule_id,
@@ -198,11 +198,13 @@ public entry fun click(
     game.resources = new_total; 
     game.last_claim_time = RV::add(&game.last_claim_time, &elapsed_targeted);
 
-    event::emit(ClickEvent {
+    let event = ClickEvent {
         game_id: object::id(game),
         rule_id,
         time_passed: elapsed_targeted.value(),
-    });
+    };
+    event::emit(event);
+    event
 }
 
 /**
@@ -234,8 +236,7 @@ public entry fun upgrade(
     storageUpgradeLevelInc: vector<u64>,
     signature: vector<u8>,
     clock: &Clock,
-    ctx: &mut TxContext,
-) {
+): UpgradeEvent {
     // #TODO add rule check
     let payload = UpgradePayload {
         rule_id,
@@ -271,11 +272,13 @@ public entry fun upgrade(
     game.idle_upgrade_levels = RV::add(&game.idle_upgrade_levels, &RV::new(idleUpgradeLevelInc));
     game.storage_upgrade_levels = RV::add(&game.storage_upgrade_levels, &RV::new(storageUpgradeLevelInc));
 
-    // Emit upgrade event
-    event::emit(UpgradeEvent {
+    // Create and emit upgrade event
+    let event = UpgradeEvent {
         game_id: object::id(game),
         rule_id,
-    });
+    };
+    event::emit(event);
+    event
 }
 
 
