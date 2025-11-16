@@ -53,7 +53,6 @@ const clickMethod = (
   targetMagnitude: ResourceVector,
   priceMagnitude: ResourceVector,
   amount: Int64,
-  ruleSignature: Signature,
   elapsed: ResourceVector
 ): GameState => {
   const DECIMALS = Int64.from(10 ** 6);
@@ -144,19 +143,12 @@ export const GameProgram = ZkProgram({
   publicOutput: GameProgramState,
   methods: {
     click: {
-      privateInputs: [
-        ResourceVector,
-        ResourceVector,
-        Int64,
-        Signature,
-        ResourceVector,
-      ],
+      privateInputs: [ResourceVector, ResourceVector, Int64, ResourceVector],
       async method(
         input: GameProgramState,
         targetMagnitude: ResourceVector,
         priceMagnitude: ResourceVector,
         amount: Int64,
-        ruleSignature: Signature,
         elapsed: ResourceVector
       ) {
         const newGameState = clickMethod(
@@ -164,7 +156,6 @@ export const GameProgram = ZkProgram({
           targetMagnitude,
           priceMagnitude,
           amount,
-          ruleSignature,
           elapsed
         );
         return {

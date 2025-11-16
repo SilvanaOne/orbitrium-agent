@@ -1,4 +1,4 @@
-import { TransitionData } from "./transition.js";
+import { ClickEvent, TransitionData } from "./transition.js";
 import { GameProgramState, GameProgram, GameProgramProof } from "./circuit.js";
 import { ResourceVector } from "./utils/ResourceVector.js";
 import {
@@ -6,7 +6,6 @@ import {
   rejectProof,
   proofEvent,
   ProofEventType,
-  error,
 } from "@silvana-one/agent";
 import {
   UInt32,
@@ -15,6 +14,7 @@ import {
   JsonProof,
   UInt64,
   VerificationKey,
+  Int64,
 } from "o1js";
 import { compile } from "./compile.js";
 import { allRules } from "./utils/Upgrades.js";
@@ -49,7 +49,7 @@ export async function merge(params: {
     // Ensure the circuit is compiled
     const { vkProgram } = await compile();
     if (!vkProgram) {
-      error("Failed to compile circuit for merging");
+      console.error("Failed to compile circuit for merging");
       throw new Error("Failed to compile circuit for merging");
     }
 
@@ -71,14 +71,17 @@ export async function merge(params: {
           JSON.parse(serialized) as JsonProof
         );
       } catch (err) {
-        error(`Error deserializing ${name}:`, error);
-        const rejectProofResponse = await rejectProof(blockNumber, sequences);
+        console.error(`Error deserializing ${name}:`, err);
+        const rejectProofResponse = await rejectProof({
+          blockNumber,
+          sequences,
+        });
         if (!rejectProofResponse.success) {
           throw new Error(
             `Failed to reject ${name}: ${rejectProofResponse.message}`
           );
         }
-        throw error;
+        throw err;
       }
 
       // Verify the proof
@@ -108,14 +111,17 @@ export async function merge(params: {
           blockNumber: blockNumber,
           dataAvailability: "",
         });
-        error(`Error verifying ${name}:`, err);
-        const rejectProofResponse = await rejectProof(blockNumber, sequences);
+        console.error(`Error verifying ${name}:`, err);
+        const rejectProofResponse = await rejectProof({
+          blockNumber,
+          sequences,
+        });
         if (!rejectProofResponse.success) {
           throw new Error(
             `Failed to reject ${name}: ${rejectProofResponse.message}`
           );
         }
-        throw error;
+        throw err;
       }
       console.log(`${name} verified`);
 
@@ -151,7 +157,6 @@ export async function merge(params: {
     return mergedProofSerialized;
   } catch (err: any) {
     console.error(`Error merging proofs:`, err);
-    error(`Error merging proofs:`, err);
     throw err;
   } finally {
     console.log("Merging proofs completed");
@@ -331,23 +336,26 @@ export async function getStateAndProof(params: {
 
     // Apply the operation based on method type
     if (transitionData.method === "click") {
-      console.log(`Processing event ${transitionData.event.rule_id}`);
+      let event = transitionData.event as ClickEvent;
+      console.log(`Processing event ${event.rule_id}`);
       let upgrade = allRules.find(
-        (upgrade: any) => BigInt(upgrade.id) === transitionData.event.rule_id
+        (upgrade: any) => BigInt(upgrade.id) === event.rule_id
       );
 
       if (!upgrade) {
-        throw new Error(`Upgrade not found: ${transitionData.event.rule_id}`);
+        throw new Error(`Upgrade not found: ${event.rule_id}`);
       }
-      const resources = upgrade.build().resources;
+      const upgradePayload = upgrade.build();
 
       if (shouldProve) {
         // Generate proof for this sequence
         console.time(`proving click for sequence ${currentSequence}`);
         const proofResult = await GameProgram.click(
           state,
-          resources,
-          ResourceVector.fromBigIntArray(transitionData.event.time_passed)
+          upgradePayload.target,
+          upgradePayload.price,
+          Int64.from(event.amount),
+          ResourceVector.fromBigIntArray(event.time_passed)
         );
         console.timeEnd(`proving click for sequence ${currentSequence}`);
         finalProof = proofResult.proof;
@@ -356,8 +364,10 @@ export async function getStateAndProof(params: {
         // Use rawMethods for non-proving sequences
         const result = await GameProgram.rawMethods.click(
           state,
-          resources,
-          ResourceVector.fromBigIntArray(transitionData.event.time_passed)
+          upgradePayload.target,
+          upgradePayload.price,
+          Int64.from(event.amount),
+          ResourceVector.fromBigIntArray(event.time_passed)
         );
         state = result.publicOutput;
       }

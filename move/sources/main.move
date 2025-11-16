@@ -143,6 +143,8 @@ public fun click(
     priceMagnitude: vector<u64>,
     amount: u64,
     signature: vector<u8>,
+    auth_signature: vector<u8>,
+    auth_timestamp: u64,
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
@@ -153,7 +155,10 @@ public fun click(
         priceMagnitude,
         amount,
         signature,
+        auth_signature,
+        auth_timestamp,
         clock,
+        ctx,
     );
     let block_number = instance.block_number();
     let sequence = instance.sequence();

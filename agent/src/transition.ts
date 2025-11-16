@@ -60,6 +60,18 @@ export interface RawUpdateEvent {
   storages: string[]; // BCS returns vector<u64> as string[]
 }
 
+export interface RawClickEvent {
+  game_id: number[]; // ID as byte array
+  rule_id: string; // BCS returns u64 as string
+  amount: string; // BCS returns u64 as string
+  time_passed: string[]; // BCS returns vector<u64> as string[]
+}
+
+export interface RawUpgradeEvent {
+  game_id: number[]; // ID as byte array
+  rule_id: string; // BCS returns u64 as string
+}
+
 /**
  * Raw TransitionData as returned by BCS deserialization
  */
@@ -67,7 +79,7 @@ export interface RawTransitionData {
   block_number: string; // BCS returns u64 as string
   sequence: string; // BCS returns u64 as string
   method: string;
-  event: RawUpdateEvent;
+  event: RawUpdateEvent | RawClickEvent | RawUpgradeEvent;
 }
 
 /**
@@ -83,6 +95,18 @@ export interface UpdateEvent {
   storages: bigint[]; // vector<u64> as bigint[]
 }
 
+export interface ClickEvent {
+  game_id: Uint8Array; // ID as Uint8Array
+  rule_id: bigint; // u64 as bigint for numeric operations
+  amount: bigint; // u64 as bigint for numeric operations
+  time_passed: bigint[]; // vector<u64> as bigint[]
+}
+
+export interface UpgradeEvent {
+  game_id: Uint8Array; // ID as Uint8Array
+  rule_id: bigint; // u64 as bigint for numeric operations
+}
+
 /**
  * Processed TransitionData with converted types
  */
@@ -90,7 +114,7 @@ export interface TransitionData {
   block_number: bigint; // u64 as bigint for numeric operations
   sequence: bigint; // u64 as bigint for numeric operations
   method: string;
-  event: UpdateEvent;
+  event: ClickEvent | UpgradeEvent;
 }
 
 /**
@@ -133,20 +157,32 @@ export function deserializeTransitionData(
 ): TransitionData {
   const rawTransitionData = deserializeRawTransitionData(data);
 
-  return {
-    block_number: BigInt(rawTransitionData.block_number),
-    sequence: BigInt(rawTransitionData.sequence),
-    method: rawTransitionData.method,
-    event: {
-      game_id: gameIdToUint8Array(rawTransitionData.event.game_id),
-      rule_id: BigInt(rawTransitionData.event.rule_id),
-      time_passed: rawTransitionData.event.time_passed.map(BigInt),
-      resources: rawTransitionData.event.resources.map(BigInt),
-      click_pow: rawTransitionData.event.click_pow.map(BigInt),
-      rps: rawTransitionData.event.rps.map(BigInt),
-      storages: rawTransitionData.event.storages.map(BigInt),
-    },
-  };
+  if (rawTransitionData.method === "click") {
+    return {
+      block_number: BigInt(rawTransitionData.block_number),
+      sequence: BigInt(rawTransitionData.sequence),
+      method: rawTransitionData.method,
+      event: {
+        game_id: gameIdToUint8Array(rawTransitionData.event.game_id),
+        rule_id: BigInt(rawTransitionData.event.rule_id),
+        time_passed: (rawTransitionData.event as RawClickEvent).time_passed.map(
+          BigInt
+        ),
+      },
+    };
+  } else if (rawTransitionData.method === "upgrade") {
+    return {
+      block_number: BigInt(rawTransitionData.block_number),
+      sequence: BigInt(rawTransitionData.sequence),
+      method: rawTransitionData.method,
+      event: {
+        game_id: gameIdToUint8Array(rawTransitionData.event.game_id),
+        rule_id: BigInt(rawTransitionData.event.rule_id),
+      },
+    };
+  } else {
+    throw new Error(`Invalid method: ${rawTransitionData.method}`);
+  }
 }
 
 /**
@@ -157,20 +193,32 @@ export function deserializeTransitionData(
 export function serializeTransitionData(
   transitionData: TransitionData
 ): Uint8Array {
+  let rawEvent: RawClickEvent | RawUpgradeEvent;
+
+  if (transitionData.method === "click") {
+    const clickEvent = transitionData.event as ClickEvent;
+
+    rawEvent = {
+      game_id: uint8ArrayToGameId(clickEvent.game_id),
+      rule_id: clickEvent.rule_id.toString(),
+      time_passed: clickEvent.time_passed.map((v) => v.toString()),
+    };
+  } else if (transitionData.method === "upgrade") {
+    const upgradeEvent = transitionData.event as UpgradeEvent;
+
+    rawEvent = {
+      game_id: uint8ArrayToGameId(upgradeEvent.game_id),
+      rule_id: upgradeEvent.rule_id.toString(),
+    };
+  } else {
+    throw new Error(`Invalid method: ${transitionData.method}`);
+  }
   // Convert back to raw format for serialization
   const rawTransitionData: RawTransitionData = {
     block_number: transitionData.block_number.toString(),
     sequence: transitionData.sequence.toString(),
     method: transitionData.method,
-    event: {
-      game_id: uint8ArrayToGameId(transitionData.event.game_id),
-      rule_id: transitionData.event.rule_id.toString(),
-      time_passed: transitionData.event.time_passed.map((v) => v.toString()),
-      resources: transitionData.event.resources.map((v) => v.toString()),
-      click_pow: transitionData.event.click_pow.map((v) => v.toString()),
-      rps: transitionData.event.rps.map((v) => v.toString()),
-      storages: transitionData.event.storages.map((v) => v.toString()),
-    },
+    event: rawEvent,
   };
 
   return TransitionDataBcs.serialize(rawTransitionData).toBytes();
@@ -182,7 +230,12 @@ export function serializeTransitionData(
  * @returns Hex string representation
  */
 export function gameIdToHex(gameId: Uint8Array): string {
-  return "0x" + Array.from(gameId).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return (
+    "0x" +
+    Array.from(gameId)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+  );
 }
 
 /**

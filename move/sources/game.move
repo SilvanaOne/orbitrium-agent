@@ -39,6 +39,23 @@ const E_INVALID_TIME: u64 = 1006;
 /// Error code: Invalid amount
 const E_INVALID_AMOUNT: u64 = 1007;
 
+const MAX_CLICKS_PER_TRANSACTION: u64 = 200;
+
+/// Error code: Click rate limit exceeded
+const E_CLICK_RATE_LIMIT: u64 = 1008;
+
+/// Size of the rate-limit window in ms (20 seconds)
+const CLICK_WINDOW_MS: u64 = 20_000;
+
+/// Maximum number of clicks allowed per window (100)
+const MAX_CLICKS_PER_WINDOW: u64 = 200;
+
+/// Error code: Invalid server signature
+const E_INVALID_SERVER_SIGNATURE: u64 = 1009;
+
+/// Max allowed age of server signature in ms (e.g. 20 seconds)
+const MAX_SERVER_SIG_AGE_MS: u64 = 20_000;
+
 const DECIMALS: u8 = 6;
 
 const ADMIN_PUBLIC_KEY: vector<u8> = vector[
@@ -46,6 +63,13 @@ const ADMIN_PUBLIC_KEY: vector<u8> = vector[
   227, 169,  63, 164,  31,  64,  20, 192,
    46,  21, 104, 138, 185,  44, 116, 249,
    22,  58, 177, 143, 225, 161,   6, 192
+];
+
+const SERVER_PUBLIC_KEY: vector<u8> = vector[
+   86, 249, 169, 105,  65, 222,  62, 185,
+  169, 239, 144,  65,  16,  18, 152, 213,
+  193,  91,  24, 150,  20,  59, 190,  13,
+  131,  12, 122, 193, 182,  84, 186, 124
 ];
 
 /// Separate object to store upgrade usage as packed bits
@@ -68,6 +92,9 @@ public struct Game has key, store {
     idle_upgrade_levels: ResourceVector,
     storage_upgrade_levels: ResourceVector,
     upgrade_registry_id: ID, // Reference to UpgradeRegistry object
+
+    last_click_window_start_ms: u64,
+    clicks_in_window: u64,
 }
 
 public struct ClickPayload has copy, drop, store {
@@ -75,6 +102,12 @@ public struct ClickPayload has copy, drop, store {
     targetMagnitude: vector<u64>,
     priceMagnitude:  vector<u64>,
 }
+
+public struct ServerClickAuthPayload has copy, drop, store {
+    game_address: address,
+    timestamp_ms: u64,
+}
+
 
 // Add target, type and level
 public struct UpgradePayload has copy, drop, store {
@@ -91,6 +124,7 @@ public struct UpgradePayload has copy, drop, store {
 public struct ClickEvent has copy, drop {
     game_id: ID,
     rule_id: u64,
+    amount: u64,
     time_passed: vector<u64>,
 }
 
@@ -125,6 +159,9 @@ public fun create_game(clock: &Clock, user_address: vector<u8>, ctx: &mut TxCont
         idle_upgrade_levels: RV::newAll(0),
         storage_upgrade_levels: RV::newAll(0),
         upgrade_registry_id,
+
+        last_click_window_start_ms: clock::timestamp_ms(clock),
+        clicks_in_window: 0,
     };
 
     game
@@ -141,16 +178,34 @@ public fun create_game(clock: &Clock, user_address: vector<u8>, ctx: &mut TxCont
  * @param clock - The clock
  * @param ctx - The transaction context
  */
-public entry fun click(
+public fun click(
     game: &mut Game,
     rule_id: u64,
     targetMagnitude: vector<u64>,
     priceMagnitude: vector<u64>,
     amount: u64,
     signature: vector<u8>,
+    auth_signature: vector<u8>,
+    auth_timestamp: u64,
     clock: &Clock,
+    ctx: &mut TxContext,
 ): ClickEvent {
-    // #TODO add rule check
+    // Verify server auth signature
+    let auth_payload = ServerClickAuthPayload {
+        game_address: game.id.to_address(),
+        timestamp_ms: auth_timestamp,
+    };
+    let auth_msg_bytes = bcs::to_bytes<ServerClickAuthPayload>(&auth_payload);
+    let is_valid = sui::ed25519::ed25519_verify(&auth_signature, &SERVER_PUBLIC_KEY, &auth_msg_bytes);
+    assert!(is_valid, E_INVALID_SERVER_SIGNATURE);
+    let now = clock::timestamp_ms(clock);
+    // must not be in the future
+    assert!(now >= auth_timestamp, E_INVALID_TIME);
+    // must not be too old
+    let age = now - auth_timestamp;
+    assert!(age <= MAX_SERVER_SIG_AGE_MS, E_INVALID_TIME);
+
+    // Verify rule signature
     let payload = ClickPayload {
         rule_id,
         targetMagnitude,
@@ -161,7 +216,10 @@ public entry fun click(
     let is_valid = sui::ed25519::ed25519_verify(&signature, &ADMIN_PUBLIC_KEY, &msg_bytes);
     assert!(is_valid, E_INVALID_SIGNATURE);
 
-    assert!(amount <= 200, E_INVALID_AMOUNT);
+    assert!(amount <= MAX_CLICKS_PER_TRANSACTION, E_INVALID_AMOUNT);
+
+    // Enforce click rate limit
+    enforce_click_rate_limit(game, amount, clock);
     
     // Check magnitude
     assert!(vector::length(&targetMagnitude) == 21u64, E_INVALID_TARGET_MAGNITUDE_LENGTH);
@@ -201,6 +259,7 @@ public entry fun click(
     let event = ClickEvent {
         game_id: object::id(game),
         rule_id,
+        amount,
         time_passed: elapsed_targeted.value(),
     };
     event::emit(event);
@@ -379,4 +438,20 @@ public fun set_resources(game: &mut Game, new_resources: ResourceVector) {
 /// Set the last claim time
 public fun set_last_claim_time(game: &mut Game, new_last_claim_time: ResourceVector) {
     game.last_claim_time = new_last_claim_time;
+}
+
+fun enforce_click_rate_limit(game: &mut Game, amount: u64, clock: &Clock) {
+    let now = clock::timestamp_ms(clock);
+
+    // If window expired, start a new one
+    let elapsed = now - game.last_click_window_start_ms;
+    if (elapsed >= CLICK_WINDOW_MS) {
+        game.last_click_window_start_ms = now;
+        game.clicks_in_window = 0;
+    };
+
+    let new_total = game.clicks_in_window + amount;
+    assert!(new_total <= MAX_CLICKS_PER_WINDOW, E_CLICK_RATE_LIMIT);
+
+    game.clicks_in_window = new_total;
 }
