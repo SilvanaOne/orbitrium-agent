@@ -68,6 +68,25 @@ export class ResourceVector extends Struct({
     return new ResourceVector({ resources: result });
   }
 
+  div(divisor: Int64) {
+    const result = [...Array(RESOURCE_COUNT).fill(Int64.from(0))];
+    for (let i = 0; i < RESOURCE_COUNT; i++) {
+      result[i] = this.resources[i].div(divisor);
+    }
+
+    return new ResourceVector({ resources: result });
+  }
+
+  ge(other: ResourceVector) {
+    let result = Bool(true);
+    for (let i = 0; i < RESOURCE_COUNT; i++) {
+      result = result.and(
+        this.resources[i].sub(other.resources[i]).isNonNegative()
+      );
+    }
+    return result;
+  }
+
   vectorMul(other: ResourceVector) {
     const result = [...Array(RESOURCE_COUNT).fill(Int64.from(0))];
     for (let i = 0; i < RESOURCE_COUNT; i++) {

@@ -1,6 +1,15 @@
-import { ZkProgram, Field, Struct, SelfProof, UInt64, Signature } from "o1js";
+import {
+  ZkProgram,
+  Field,
+  Struct,
+  SelfProof,
+  UInt64,
+  Signature,
+  Int64,
+} from "o1js";
 import { GameState } from "./GameState.js";
 import { ResourceVector } from "./utils/ResourceVector.js";
+import { Upgrade } from "./utils/Upgrade.js";
 
 export class GameProgramState extends Struct({
   blockNumber: UInt64,
@@ -41,26 +50,89 @@ export class GameProgramState extends Struct({
 
 const clickMethod = (
   gameState: GameState,
-  rule: ResourceVector,
-  timePassed: ResourceVector
+  targetMagnitude: ResourceVector,
+  priceMagnitude: ResourceVector,
+  amount: Int64,
+  ruleSignature: Signature,
+  elapsed: ResourceVector
 ): GameState => {
-  const generatedResources = gameState.resourcesPerSecond.vectorMul(timePassed);
-  const limitedResources = generatedResources.limit(gameState.storages);
+  const DECIMALS = Int64.from(10 ** 6);
 
-  const clickedResources = gameState.clickPower.vectorMul(rule);
+  // Calculate targeted click power: (click_pow * target) / DECIMALS
+  const clickPowerTargeted = gameState.clickPower
+    .vectorMul(targetMagnitude)
+    .div(DECIMALS);
 
-  const newResources = gameState.resources
-    .add(limitedResources)
-    .add(clickedResources);
+  // Calculate click power with amount: click_power_targeted * amount
+  const clickPowerWithAmount = clickPowerTargeted.mul(amount);
 
-  const newLastClaimTime = gameState.lastClaimTime.add(timePassed);
+  // Calculate price: (priceMagnitude * click_power_with_amount) / DECIMALS
+  const price = priceMagnitude.vectorMul(clickPowerWithAmount).div(DECIMALS);
+
+  // Calculate elapsed targeted: (elapsed * target) / DECIMALS
+  const elapsedTargeted = elapsed.vectorMul(targetMagnitude).div(DECIMALS);
+
+  // Convert to seconds: elapsed_targeted / 1000
+  const elapsedSecsTargeted = elapsedTargeted.div(Int64.from(1000));
+
+  // Calculate generated resources: rps * elapsed_secs_targeted
+  const generated = gameState.resourcesPerSecond.vectorMul(elapsedSecsTargeted);
+
+  // Limit generated resources by storage
+  const limited = generated.limit(gameState.storages);
+
+  // Calculate increment: limited + click_power_with_amount
+  const increment = limited.add(clickPowerWithAmount);
+
+  // Calculate total with income: resources + increment
+  const totalWithIncome = gameState.resources.add(increment);
+
+  // Check if we have enough resources: total_with_income >= price
+  totalWithIncome.ge(price).assertTrue();
+
+  // Calculate new total: total_with_income - price
+  const newTotal = totalWithIncome.sub(price);
+
+  // Update last claim time: last_claim_time + elapsed_targeted
+  const newLastClaimTime = gameState.lastClaimTime.add(elapsedTargeted);
 
   const newGameState = new GameState({
-    resources: newResources,
+    resources: newTotal,
     storages: gameState.storages,
     resourcesPerSecond: gameState.resourcesPerSecond,
     clickPower: gameState.clickPower,
     lastClaimTime: newLastClaimTime,
+  });
+
+  return newGameState;
+};
+
+const upgradeMethod = (gameState: GameState, upgrade: Upgrade): GameState => {
+  // Validate upgrade
+  // upgrade.adminSignature
+  //   .verify(ADMIN_ADDRESS, [upgrade.getCommit()])
+  //   .assertTrue();
+
+  // Update resources: resources = resources + target - price
+  let newResources = gameState.resources.add(upgrade.target);
+  newResources = newResources.sub(upgrade.price);
+
+  // Update rps: rps = rps + rps - rpsPrice
+  let newRps = gameState.resourcesPerSecond.add(upgrade.rps);
+  newRps = newRps.sub(upgrade.rpsPrice);
+
+  // Update storages: storages = storages + storages
+  const newStorages = gameState.storages.add(upgrade.storages);
+
+  // Update click power: click_pow = click_pow + clickPow
+  const newClickPower = gameState.clickPower.add(upgrade.clickPower);
+
+  const newGameState = new GameState({
+    resources: newResources,
+    storages: newStorages,
+    resourcesPerSecond: newRps,
+    clickPower: newClickPower,
+    lastClaimTime: gameState.lastClaimTime,
   });
 
   return newGameState;
@@ -72,13 +144,47 @@ export const GameProgram = ZkProgram({
   publicOutput: GameProgramState,
   methods: {
     click: {
-      privateInputs: [ResourceVector, ResourceVector],
+      privateInputs: [
+        ResourceVector,
+        ResourceVector,
+        Int64,
+        Signature,
+        ResourceVector,
+      ],
       async method(
         input: GameProgramState,
-        rule: ResourceVector,
-        timePassed: ResourceVector
+        targetMagnitude: ResourceVector,
+        priceMagnitude: ResourceVector,
+        amount: Int64,
+        ruleSignature: Signature,
+        elapsed: ResourceVector
       ) {
-        const newGameState = clickMethod(input.gameState, rule, timePassed);
+        const newGameState = clickMethod(
+          input.gameState,
+          targetMagnitude,
+          priceMagnitude,
+          amount,
+          ruleSignature,
+          elapsed
+        );
+        return {
+          publicOutput: new GameProgramState({
+            blockNumber: input.blockNumber,
+            sequence: input.sequence.add(1),
+            gameState: newGameState,
+          }),
+        };
+      },
+    },
+
+    upgrade: {
+      privateInputs: [Upgrade, Signature],
+      async method(
+        input: GameProgramState,
+        upgrade: Upgrade,
+        ruleSignature: Signature
+      ) {
+        const newGameState = upgradeMethod(input.gameState, upgrade);
         return {
           publicOutput: new GameProgramState({
             blockNumber: input.blockNumber,
