@@ -213,10 +213,7 @@ async function agent() {
               console.log(
                 `Fetching proof 1: sequences ${sequences1.join(", ")}`
               );
-              const proof1Response = await getProof({
-                blockNumber,
-                sequences: sequences1,
-              });
+              const proof1Response = await getProof(blockNumber, sequences1);
               if (!proof1Response.success || !proof1Response.proof) {
                 throw new Error(
                   `Failed to fetch proof 1: ${
@@ -236,10 +233,7 @@ async function agent() {
               console.log(
                 `Fetching proof 2: sequences ${sequences2.join(", ")}`
               );
-              const proof2Response = await getProof({
-                blockNumber,
-                sequences: sequences2,
-              });
+              const proof2Response = await getProof(blockNumber, sequences2);
               if (!proof2Response.success || !proof2Response.proof) {
                 throw new Error(
                   `Failed to fetch proof 2: ${
@@ -282,14 +276,14 @@ async function agent() {
               );
 
               // Submit the merged proof
-              const submitProofResponse = await submitProof({
+              const submitProofResponse = await submitProof(
                 blockNumber,
-                sequences: allSequences,
-                proof: mergedProof,
-                cpuTime: BigInt(mergeTimeMs),
-                mergedSequences1: sequences1,
-                mergedSequences2: sequences2,
-              });
+                allSequences,
+                mergedProof,
+                BigInt(mergeTimeMs),
+                sequences1,
+                sequences2
+              );
               console.log(
                 `Merged proof submitted successfully! TX: ${submitProofResponse.txHash}, DA: ${submitProofResponse.daHash}`
               );
@@ -471,12 +465,12 @@ async function agent() {
                   console.log(
                     `Submitting proof for sequence ${transitionData.sequence}...`
                   );
-                  const submitProofResponse = await submitProof({
-                    blockNumber: BigInt(transitionData.block_number),
-                    sequences: [transitionData.sequence],
-                    proof: serializedProofAndState,
-                    cpuTime: BigInt(cpuTimeMs),
-                  });
+                  const submitProofResponse = await submitProof(
+                    BigInt(transitionData.block_number),
+                    [transitionData.sequence],
+                    serializedProofAndState,
+                    BigInt(cpuTimeMs)
+                  );
                   console.log(
                     `Proof submitted successfully for sequence ${transitionData.sequence}`
                   );
@@ -485,11 +479,11 @@ async function agent() {
                   console.log(
                     `Submitting state for sequence ${transitionData.sequence}...`
                   );
-                  const submitStateResponse = await submitState({
-                    sequence: transitionData.sequence,
-                    newStateData: undefined,
-                    serializedState: serializedStateOnly,
-                  });
+                  const submitStateResponse = await submitState(
+                    transitionData.sequence,
+                    undefined,
+                    serializedStateOnly
+                  );
                   console.log(
                     `State submitted successfully for sequence ${transitionData.sequence}`
                   );

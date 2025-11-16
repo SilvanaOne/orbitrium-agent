@@ -1,14 +1,14 @@
-import { Int64 } from 'o1js';
+import { Int64 } from "o1js";
 import {
   basicCosts,
   DECIMALS,
   priceMultiplier,
   resourcesStats,
   totalLevelAmount,
-} from '../constants.js';
-import { Resource, Tiers } from '../lib/types.js';
-import { U, UpgradeBuilder } from '../managers/UpgradesManager.js';
-import { ResourceVector } from './ResourceVector.js';
+} from "../constants.js";
+import { Resource, Tiers } from "../lib/types.js";
+import { U, UpgradeBuilder } from "../managers/UpgradesManager.js";
+import { ResourceVector } from "./ResourceVector.js";
 
 // export const upgrades = builder.upgrades;
 
@@ -31,44 +31,44 @@ export const getCraftingRules = () => {
 
   // Rules for tier 1 crafting and gold
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'wood').wood(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "wood").wood(1 * decMultiplier)
   );
 
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'stone').stone(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "stone").stone(1 * decMultiplier)
   );
 
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'metal').metal(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "metal").metal(1 * decMultiplier)
   );
 
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'wheat').wheat(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "wheat").wheat(1 * decMultiplier)
   );
 
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'water').water(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "water").water(1 * decMultiplier)
   );
 
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'meat').meat(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "meat").meat(1 * decMultiplier)
   );
 
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'herbs').herbs(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "herbs").herbs(1 * decMultiplier)
   );
 
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'crystal').crystal(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "crystal").crystal(1 * decMultiplier)
   );
 
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'gold').gold(1 * decMultiplier)
+    new U(globalCounter++, "crafting", 0, "gold").gold(1 * decMultiplier)
   );
 
   // Steel at 20 metal and 10 wood
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'steel')
+    new U(globalCounter++, "crafting", 0, "steel")
       .steel(1 * decMultiplier)
       .metal(-20 * decMultiplier)
       .wood(-10 * decMultiplier)
@@ -76,7 +76,7 @@ export const getCraftingRules = () => {
 
   // Planks at 10 stone and 10 wood
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'plank')
+    new U(globalCounter++, "crafting", 0, "plank")
       .plank(1 * decMultiplier)
       .stone(-10 * decMultiplier)
       .wood(-5 * decMultiplier)
@@ -84,7 +84,7 @@ export const getCraftingRules = () => {
 
   // MechParts ar 50 planks + 30 steel
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'mechPart')
+    new U(globalCounter++, "crafting", 0, "mechPart")
       .mechPart(1 * decMultiplier)
       .plank(-50 * decMultiplier)
       .steel(-30 * decMultiplier)
@@ -92,14 +92,14 @@ export const getCraftingRules = () => {
 
   // Flour at 5 wheat
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'flour')
+    new U(globalCounter++, "crafting", 0, "flour")
       .flour(1 * decMultiplier)
       .wheat(-5 * decMultiplier)
   );
 
   // Bread at 50 water and 5 flour
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'bread')
+    new U(globalCounter++, "crafting", 0, "bread")
       .bread(1 * decMultiplier)
       .water(-50 * decMultiplier)
       .flour(-5 * decMultiplier)
@@ -107,7 +107,7 @@ export const getCraftingRules = () => {
 
   // Pie at 100 meat and 10 flour
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'pie')
+    new U(globalCounter++, "crafting", 0, "pie")
       .pie(1 * decMultiplier)
       .meat(-100 * decMultiplier)
       .flour(-10 * decMultiplier)
@@ -115,7 +115,7 @@ export const getCraftingRules = () => {
 
   // Provision at 50 bread and 30 pie
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'provision')
+    new U(globalCounter++, "crafting", 0, "provision")
       .provision(1 * decMultiplier)
       .bread(-50 * decMultiplier)
       .pie(-30 * decMultiplier)
@@ -123,14 +123,14 @@ export const getCraftingRules = () => {
 
   // Elixir at 50 herbs
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'elixir')
+    new U(globalCounter++, "crafting", 0, "elixir")
       .elixir(1 * decMultiplier)
       .herbs(-50 * decMultiplier)
   );
 
   // Magic Ink at 400 Crystal and 5 Elixir
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'magicInk')
+    new U(globalCounter++, "crafting", 0, "magicInk")
       .magicInk(1 * decMultiplier)
       .crystal(-400 * decMultiplier)
       .elixir(-5 * decMultiplier)
@@ -138,7 +138,7 @@ export const getCraftingRules = () => {
 
   // Gems at 50 elixir and 25 magic ink
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'gems')
+    new U(globalCounter++, "crafting", 0, "gems")
       .gems(1 * decMultiplier)
       .elixir(-50 * decMultiplier)
       .magicInk(-25 * decMultiplier)
@@ -146,7 +146,7 @@ export const getCraftingRules = () => {
 
   // Arcane Core at 40 magic ink and 5 gems
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'arcaneCore')
+    new U(globalCounter++, "crafting", 0, "arcaneCore")
       .arcaneCore(1 * decMultiplier)
       .magicInk(-40 * decMultiplier)
       .gems(-5 * decMultiplier)
@@ -154,7 +154,7 @@ export const getCraftingRules = () => {
 
   // Black Orb at 1 arcane core and 20 provision and 100 mech parts and 2500 gold
   craftingRules.push(
-    new U(globalCounter++, 'crafting', 0, 'blackOrb')
+    new U(globalCounter++, "crafting", 0, "blackOrb")
       .blackOrb(1 * decMultiplier)
       .arcaneCore(-1 * decMultiplier)
       .provision(-20 * decMultiplier)
@@ -276,44 +276,43 @@ const getLeveledUpgrades = () => {
 
       // Click upgrade
       upgrades.push(
-        new U(globalCounter++, 'click', i, key as Resource)
+        new U(globalCounter++, "click", i, key as Resource)
           [key](clickCost)
-          ['gold'](clickCost * goldMultiplier)
+          ["gold"](clickCost * goldMultiplier)
           [`${key}ClickPower`](clickPower)
       );
 
       // Idle upgradeupgrade
       let baseIdleUpgrade: U = new U(
         globalCounter++,
-        'idle',
+        "idle",
         i,
         key as Resource
       )
         [key](idleCost)
-        ['gold'](idleCost * goldMultiplier)
+        ["gold"](idleCost * goldMultiplier)
         [`${key}IdlePower`](idlePower);
       if (craftingRule) {
         // If resource is crafting resource, add crafting rule to idle upgrade
-        const craftingRuleResources =
-          craftingRule.upgrade.resources.resources.map((v) =>
-            +v < 0 ? Int64.from(v) : Int64.from(0)
-          );
+        // Costs from price field (already positive) go to rpsPrice
+        const craftingRuleResources = craftingRule.upgrade.price.resources.map(
+          (v) => (+v > 0 ? v : Int64.from(0))
+        );
         const adjustedCraftingRuleResources = craftingRuleResources.map((v) =>
           v.mul(idlePower).div(10 ** DECIMALS)
         );
-        baseIdleUpgrade.upgrade.resourcePerSecond =
-          baseIdleUpgrade.upgrade.resourcePerSecond.add(
-            new ResourceVector({ resources: adjustedCraftingRuleResources }),
-            false
-          );
+        baseIdleUpgrade.upgrade.rpsPrice = baseIdleUpgrade.upgrade.rpsPrice.add(
+          new ResourceVector({ resources: adjustedCraftingRuleResources }),
+          false
+        );
       }
       upgrades.push(baseIdleUpgrade);
 
       // Capacity upgrade
       upgrades.push(
-        new U(globalCounter++, 'storage', i, key as Resource)
+        new U(globalCounter++, "storage", i, key as Resource)
           [key](storageCost)
-          ['gold'](storageCost * goldMultiplier)
+          ["gold"](storageCost * goldMultiplier)
           [`${key}Storage`](capacityPower)
       );
     }
@@ -329,7 +328,7 @@ const getResourceOpenUpgrades = () => {
 
   // Stone at 10 wood
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'stone')
+    new U(globalCounter++, "unlock", 0, "stone")
       .wood(-10 * decMultiplier)
       .blackOrb(1 * decMultiplier)
       .stoneClickPower(basicCosts[resourcesStats.stone.tier].basicClickPower)
@@ -337,7 +336,7 @@ const getResourceOpenUpgrades = () => {
 
   // Planks at 1 stone
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'plank')
+    new U(globalCounter++, "unlock", 0, "plank")
       .stone(-1 * decMultiplier)
       .blackOrb(2 * decMultiplier)
       .plankClickPower(basicCosts[resourcesStats.plank.tier].basicClickPower)
@@ -345,7 +344,7 @@ const getResourceOpenUpgrades = () => {
 
   // Metal at 1 planks
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'metal')
+    new U(globalCounter++, "unlock", 0, "metal")
       .plank(-1 * decMultiplier)
       .blackOrb(1 * decMultiplier)
       .metalClickPower(basicCosts[resourcesStats.metal.tier].basicClickPower)
@@ -353,7 +352,7 @@ const getResourceOpenUpgrades = () => {
 
   // Steel at 100 metal
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'steel')
+    new U(globalCounter++, "unlock", 0, "steel")
       .metal(-100 * decMultiplier)
       .blackOrb(2 * decMultiplier)
       .steelClickPower(basicCosts[resourcesStats.steel.tier].basicClickPower)
@@ -361,7 +360,7 @@ const getResourceOpenUpgrades = () => {
 
   // Gold at 1 steel
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'gold')
+    new U(globalCounter++, "unlock", 0, "gold")
       .steel(-1 * decMultiplier)
       .blackOrb(1 * decMultiplier)
       .goldClickPower(basicCosts[resourcesStats.gold.tier].basicClickPower)
@@ -369,7 +368,7 @@ const getResourceOpenUpgrades = () => {
 
   // MechanicalPart at 200 gold
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'mechPart')
+    new U(globalCounter++, "unlock", 0, "mechPart")
       .gold(-200 * decMultiplier)
       .blackOrb(3 * decMultiplier)
       .mechPartClickPower(
@@ -379,7 +378,7 @@ const getResourceOpenUpgrades = () => {
 
   // Wheat at 1 mechanicalPart
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'wheat')
+    new U(globalCounter++, "unlock", 0, "wheat")
       .mechPart(-1 * decMultiplier)
       .blackOrb(1 * decMultiplier)
       .wheatClickPower(basicCosts[resourcesStats.wheat.tier].basicClickPower)
@@ -387,7 +386,7 @@ const getResourceOpenUpgrades = () => {
 
   // Flour at 200 Wheat
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'flour')
+    new U(globalCounter++, "unlock", 0, "flour")
       .wheat(-200 * decMultiplier)
       .blackOrb(2 * decMultiplier)
       .flourClickPower(basicCosts[resourcesStats.flour.tier].basicClickPower)
@@ -395,7 +394,7 @@ const getResourceOpenUpgrades = () => {
 
   // Water at 10 flour
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'water')
+    new U(globalCounter++, "unlock", 0, "water")
       .flour(-10 * decMultiplier)
       .blackOrb(1 * decMultiplier)
       .waterClickPower(basicCosts[resourcesStats.water.tier].basicClickPower)
@@ -403,7 +402,7 @@ const getResourceOpenUpgrades = () => {
 
   // Meat at 10 flour
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'meat')
+    new U(globalCounter++, "unlock", 0, "meat")
       .flour(-10 * decMultiplier)
       .blackOrb(1 * decMultiplier)
       .meatClickPower(basicCosts[resourcesStats.meat.tier].basicClickPower)
@@ -411,7 +410,7 @@ const getResourceOpenUpgrades = () => {
 
   // Bread at 200 water
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'bread')
+    new U(globalCounter++, "unlock", 0, "bread")
       .water(-200 * decMultiplier)
       .blackOrb(2 * decMultiplier)
       .breadClickPower(basicCosts[resourcesStats.bread.tier].basicClickPower)
@@ -419,7 +418,7 @@ const getResourceOpenUpgrades = () => {
 
   // Pie at 200 200 meat
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'pie')
+    new U(globalCounter++, "unlock", 0, "pie")
       .meat(-200 * decMultiplier)
       .blackOrb(2 * decMultiplier)
       .pieClickPower(basicCosts[resourcesStats.pie.tier].basicClickPower)
@@ -427,7 +426,7 @@ const getResourceOpenUpgrades = () => {
 
   // Provision at 100 bread and 100 pie
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'provision')
+    new U(globalCounter++, "unlock", 0, "provision")
       .bread(-50 * decMultiplier)
       .pie(-30 * decMultiplier)
       .blackOrb(3 * decMultiplier)
@@ -438,7 +437,7 @@ const getResourceOpenUpgrades = () => {
 
   // Herbs at 1 Provision
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'herbs')
+    new U(globalCounter++, "unlock", 0, "herbs")
       .provision(-1 * decMultiplier)
       .blackOrb(1 * decMultiplier)
       .herbsClickPower(basicCosts[resourcesStats.herbs.tier].basicClickPower)
@@ -446,7 +445,7 @@ const getResourceOpenUpgrades = () => {
 
   // Elixir at 500 herbs
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'elixir')
+    new U(globalCounter++, "unlock", 0, "elixir")
       .herbs(-500 * decMultiplier)
       .blackOrb(2 * decMultiplier)
       .elixirClickPower(basicCosts[resourcesStats.elixir.tier].basicClickPower)
@@ -454,7 +453,7 @@ const getResourceOpenUpgrades = () => {
 
   // Crystal at 10 Elixir
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'crystal')
+    new U(globalCounter++, "unlock", 0, "crystal")
       .elixir(-10 * decMultiplier)
       .blackOrb(1 * decMultiplier)
       .crystalClickPower(
@@ -464,7 +463,7 @@ const getResourceOpenUpgrades = () => {
 
   // Magic Ink at 50 Elixir and 500 Crystal
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'magicInk')
+    new U(globalCounter++, "unlock", 0, "magicInk")
       .elixir(-50 * decMultiplier)
       .crystal(-500 * decMultiplier)
       .blackOrb(2 * decMultiplier)
@@ -475,7 +474,7 @@ const getResourceOpenUpgrades = () => {
 
   // Gems at 50 Magic Ink and 200 Elixir
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'gems')
+    new U(globalCounter++, "unlock", 0, "gems")
       .magicInk(-50 * decMultiplier)
       .elixir(-200 * decMultiplier)
       .blackOrb(2 * decMultiplier)
@@ -484,7 +483,7 @@ const getResourceOpenUpgrades = () => {
 
   // Arcane Core at 200 Magic Ink and 50 Gems
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'arcaneCore')
+    new U(globalCounter++, "unlock", 0, "arcaneCore")
       .magicInk(-200 * decMultiplier)
       .gems(-50 * decMultiplier)
       .blackOrb(3 * decMultiplier)
@@ -495,7 +494,7 @@ const getResourceOpenUpgrades = () => {
 
   // Black Orb at 100 Mech Parts and 25 Provision and 1 Arcane Core
   upgrades.push(
-    new U(globalCounter++, 'unlock', 0, 'blackOrb')
+    new U(globalCounter++, "unlock", 0, "blackOrb")
       .mechPart(-100 * decMultiplier)
       .provision(-25 * decMultiplier)
       .arcaneCore(-1 * decMultiplier)

@@ -47,6 +47,18 @@ export const TransitionDataBcs = bcs.struct("TransitionData", {
   event: UpdateEventBcs,
 });
 
+export const ClickEventBcs = bcs.struct("ClickEvent", {
+  game_id: ID,
+  rule_id: bcs.u64(),
+  amount: bcs.u64(),
+  time_passed: bcs.vector(bcs.u64()),
+});
+
+export const UpgradeEventBcs = bcs.struct("UpgradeEvent", {
+  game_id: ID,
+  rule_id: bcs.u64(),
+});
+
 /**
  * Raw UpdateEvent as returned by BCS deserialization
  */
@@ -203,25 +215,21 @@ export function serializeTransitionData(
       rule_id: clickEvent.rule_id.toString(),
       time_passed: clickEvent.time_passed.map((v) => v.toString()),
     };
-  } else if (transitionData.method === "upgrade") {
-    const upgradeEvent = transitionData.event as UpgradeEvent;
 
-    rawEvent = {
-      game_id: uint8ArrayToGameId(upgradeEvent.game_id),
-      rule_id: upgradeEvent.rule_id.toString(),
-    };
+    return ClickEventBcs.serialize({
+      game_id: uint8ArrayToGameId(clickEvent.game_id),
+      rule_id: clickEvent.rule_id.toString(),
+      amount: clickEvent.amount.toString(),
+      time_passed: clickEvent.time_passed.map((v) => v.toString()),
+    }).toBytes();
+  } else if (transitionData.method === "upgrade") {
+    return UpgradeEventBcs.serialize({
+      game_id: uint8ArrayToGameId(transitionData.event.game_id),
+      rule_id: transitionData.event.rule_id.toString(),
+    }).toBytes();
   } else {
     throw new Error(`Invalid method: ${transitionData.method}`);
   }
-  // Convert back to raw format for serialization
-  const rawTransitionData: RawTransitionData = {
-    block_number: transitionData.block_number.toString(),
-    sequence: transitionData.sequence.toString(),
-    method: transitionData.method,
-    event: rawEvent,
-  };
-
-  return TransitionDataBcs.serialize(rawTransitionData).toBytes();
 }
 
 /**

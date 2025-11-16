@@ -72,10 +72,7 @@ export async function merge(params: {
         );
       } catch (err) {
         console.error(`Error deserializing ${name}:`, err);
-        const rejectProofResponse = await rejectProof({
-          blockNumber,
-          sequences,
-        });
+        const rejectProofResponse = await rejectProof(blockNumber, sequences);
         if (!rejectProofResponse.success) {
           throw new Error(
             `Failed to reject ${name}: ${rejectProofResponse.message}`
@@ -112,10 +109,7 @@ export async function merge(params: {
           dataAvailability: "",
         });
         console.error(`Error verifying ${name}:`, err);
-        const rejectProofResponse = await rejectProof({
-          blockNumber,
-          sequences,
-        });
+        const rejectProofResponse = await rejectProof(blockNumber, sequences);
         if (!rejectProofResponse.success) {
           throw new Error(
             `Failed to reject ${name}: ${rejectProofResponse.message}`
