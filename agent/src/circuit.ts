@@ -169,12 +169,8 @@ export const GameProgram = ZkProgram({
     },
 
     upgrade: {
-      privateInputs: [Upgrade, Signature],
-      async method(
-        input: GameProgramState,
-        upgrade: Upgrade,
-        ruleSignature: Signature
-      ) {
+      privateInputs: [Upgrade],
+      async method(input: GameProgramState, upgrade: Upgrade) {
         const newGameState = upgradeMethod(input.gameState, upgrade);
         return {
           publicOutput: new GameProgramState({

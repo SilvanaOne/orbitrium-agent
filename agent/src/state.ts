@@ -1,4 +1,4 @@
-import { ClickEvent, TransitionData } from "./transition.js";
+import { ClickEvent, TransitionData, UpgradeEvent } from "./transition.js";
 import { GameProgramState, GameProgram, GameProgramProof } from "./circuit.js";
 import { ResourceVector } from "./utils/ResourceVector.js";
 import {
@@ -368,6 +368,33 @@ export async function getStateAndProof(params: {
           upgradePayload.price,
           Int64.from(event.amount),
           ResourceVector.fromBigIntArray(event.time_passed)
+        );
+        state = result.publicOutput;
+      }
+    } else if (transitionData.method === "upgrade") {
+      let event = transitionData.event as UpgradeEvent;
+      console.log(`Processing event ${event.rule_id}`);
+      let upgrade = allRules.find(
+        (upgrade: any) => BigInt(upgrade.id) === event.rule_id
+      );
+
+      if (!upgrade) {
+        throw new Error(`Upgrade not found: ${event.rule_id}`);
+      }
+      const upgradePayload = upgrade.build();
+
+      if (shouldProve) {
+        // Generate proof for this sequence
+        console.time(`proving click for sequence ${currentSequence}`);
+        const proofResult = await GameProgram.upgrade(state, upgradePayload);
+        console.timeEnd(`proving click for sequence ${currentSequence}`);
+        finalProof = proofResult.proof;
+        state = proofResult.proof.publicOutput;
+      } else {
+        // Use rawMethods for non-proving sequences
+        const result = await GameProgram.rawMethods.upgrade(
+          state,
+          upgradePayload
         );
         state = result.publicOutput;
       }
