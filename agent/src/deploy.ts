@@ -11,8 +11,8 @@ import {
   initBlockchain,
   accountBalanceMina,
   sendTx,
-  CanonicalBlockchain,
 } from "@silvana-one/mina-utils";
+import { CanonicalBlockchain } from "@silvana-one/api";
 import { compile } from "./compile.js";
 
 const expectedTxStatus = "pending";
@@ -24,6 +24,7 @@ export async function deployGameContract(): Promise<{
   txHash: string;
   verificationKey: VerificationKey;
   nonce: number;
+  contractPrivateKey: string;
 }> {
   console.time("GameContract deployment");
   console.log("🚀 Starting GameContract deployment...");
@@ -48,7 +49,7 @@ export async function deployGameContract(): Promise<{
   console.log(`Chain: ${chain}`);
 
   // Initialize blockchain connection
-  await initBlockchain(chain);
+  await initBlockchain({ chain });
   const { vkProgram, vkContract } = await compile({ compileContract: true });
   if (!vkProgram || !vkContract) {
     throw new Error("Failed to compile circuit for merging");
@@ -153,6 +154,7 @@ export async function deployGameContract(): Promise<{
     txHash,
     verificationKey: vkContract,
     nonce,
+    contractPrivateKey: contractPrivateKey.toBase58(),
   };
 }
 

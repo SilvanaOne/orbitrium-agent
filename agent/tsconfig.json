@@ -23,7 +23,7 @@
   "include": [
     "src/**/*",
     "test/**/*"
-  ],
+, "scripts"  ],
   "exclude": ["dist/**", "node_modules"],
   "ts-node": {
     "experimentalSpecifierResolution": "node",

@@ -10,9 +10,9 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { SUI_CLOCK_OBJECT_ID } from "@mysten/sui/utils";
 
 export const developerName = "zkNoid";
-export const agentName = "OrbitriumAgent";
-export const appName = "orbitrium";
-export const appDescription = "Orbitrium Game";
+export const agentName = "OrbiriumAgent";
+export const appName = "orbirium";
+export const appDescription = "Orbirium Game";
 
 export async function createApp() {
   const suiSecretKey: string = process.env.SUI_SECRET_KEY!;
@@ -33,6 +33,9 @@ export async function createApp() {
     );
   }
 
+  console.log("registryAddress:", registryAddress);
+  console.log("registryPackageID:", registryPackageID);
+
   // Initialize keyPair early since we need it for method transactions
   const keyPair = Ed25519Keypair.fromSecretKey(suiSecretKey);
   const address = await getSuiAddress({
@@ -43,6 +46,7 @@ export async function createApp() {
   const registry = new AgentRegistry({ registry: registryAddress });
   const developer = await registry.getDeveloper({ name: developerName });
 
+  console.log("developer:", developer);
   if (!developer) {
     if (!process.env.DOCKER_IMAGE) {
       throw new Error("DOCKER_IMAGE is not set");
@@ -62,9 +66,9 @@ export async function createApp() {
       developer: developerName,
       name: agentName,
       image: "",
-      description: "Orbitrium Agent",
+      description: "Orbirium Agent",
       site: "",
-      chains: ["sui:devnet", "zeko:testnet"],
+      chains: ["sui:testnet", "zeko:testnet"],
       transaction,
     });
 
@@ -115,6 +119,16 @@ export async function createApp() {
 
     registry.addMethodToApp({
       appName,
+      methodName: "upgrade",
+      description: "Prove game upgrade",
+      developerName,
+      agentName,
+      agentMethod: "prove",
+      transaction,
+    });
+
+    registry.addMethodToApp({
+      appName,
       methodName: "merge",
       description: "Merge proofs",
       developerName,
@@ -139,6 +153,7 @@ export async function createApp() {
     const result = await executeTx({
       tx: transaction,
       keyPair,
+      showErrors: true,
     });
 
     if (!result) {
@@ -213,6 +228,18 @@ export async function createAppInstance(params: {
 
   console.log("Creating app instance:", { registryAddress, chains, addresses });
   const userAddressBytes = new TextEncoder().encode(address);
+
+  const settlementAddresses = params.contractAddress
+    ? [{ Some: params.contractAddress }]
+    : [];
+
+  console.log("Creating app with arguments:", {
+    registryAddress,
+    chains,
+    addresses,
+    userAddressBytes,
+    clock: SUI_CLOCK_OBJECT_ID,
+  });
 
   const app = tx.moveCall({
     target: `${packageID}::main::create_app`,

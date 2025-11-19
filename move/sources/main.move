@@ -63,7 +63,7 @@ public fun create_app(
     user_address: vector<u8>,
     clock: &Clock,
     ctx: &mut TxContext,
-): App {
+) {
     // Create an app instance from the registry's SilvanaApp
     // This creates and shares an AppInstance
     let instance_cap = create_app_instance_from_registry(
@@ -95,7 +95,8 @@ public fun create_app(
         initial_state_commitment: sui::bls12381::scalar_zero(),
     });
 
-    app
+    // Transfer the App object to the transaction sender
+    transfer::transfer(app, ctx.sender())
 }
 
 public fun init_app_with_instance(
@@ -135,7 +136,7 @@ public fun init_app_with_instance(
     );
 }
 
-public fun click(
+public entry fun click(
     app: &mut App,
     instance: &mut AppInstance,
     rule_id: u64,
@@ -212,7 +213,7 @@ public fun click(
     );
 }
 
-public fun upgrade(
+public entry fun upgrade(
     app: &mut App,
     instance: &mut AppInstance,
     upgrade_registry: &mut game::UpgradeRegistry,

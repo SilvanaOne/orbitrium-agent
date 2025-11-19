@@ -2,7 +2,7 @@
 
 [move]
 version = 3
-manifest_digest = "DC5531597FDF07B547D7C1D00A18650D27ECB3DFCEB49E00020178483E3E8088"
+manifest_digest = "A66C0091A4E23729FC02624EBA90CA5D74BF83D8A69D6CA0391AD496F830FDD3"
 deps_digest = "52B406A7A21811BEF51751CF88DA0E76DAEFFEAC888D4F4060B1A72BBE7D8D35"
 dependencies = [
   { id = "Bridge", name = "Bridge" },
@@ -46,7 +46,7 @@ dependencies = [
 
 [[move.package]]
 id = "commitment"
-source = { git = "https://github.com/SilvanaOne/silvana", rev = "4308d15b80468f8fea2673a399e7d925df652082", subdir = "move/commitment" }
+source = { git = "https://github.com/SilvanaOne/silvana", rev = "5b54bdb3f096a948fd02fa0fb8fec8fb9aacb03a", subdir = "move/commitment" }
 
 dependencies = [
   { id = "Bridge", name = "Bridge" },
@@ -58,7 +58,7 @@ dependencies = [
 
 [[move.package]]
 id = "constants"
-source = { git = "https://github.com/SilvanaOne/silvana", rev = "4308d15b80468f8fea2673a399e7d925df652082", subdir = "move/constants" }
+source = { git = "https://github.com/SilvanaOne/silvana", rev = "5b54bdb3f096a948fd02fa0fb8fec8fb9aacb03a", subdir = "move/constants" }
 
 dependencies = [
   { id = "Bridge", name = "Bridge" },
@@ -69,7 +69,7 @@ dependencies = [
 
 [[move.package]]
 id = "coordination"
-source = { git = "https://github.com/SilvanaOne/silvana", rev = "4308d15b80468f8fea2673a399e7d925df652082", subdir = "move/coordination" }
+source = { git = "https://github.com/SilvanaOne/silvana", rev = "5b54bdb3f096a948fd02fa0fb8fec8fb9aacb03a", subdir = "move/coordination" }
 
 dependencies = [
   { id = "Bridge", name = "Bridge" },
@@ -91,4 +91,10 @@ flavor = "sui"
 chain-id = "01d7a1c8"
 original-published-id = "0x43dfbe24ff15da822c9c1014c914845d23869d60a34caffc0f385204dd03193a"
 latest-published-id = "0x43dfbe24ff15da822c9c1014c914845d23869d60a34caffc0f385204dd03193a"
+published-version = "1"
+
+[env.testnet2]
+chain-id = "4c78adac"
+original-published-id = "0x8c9aebeef9c6b3fb3766ab7709d9cc1f562ff153f5678fa5d9eeecc1bf57dcd2"
+latest-published-id = "0x8c9aebeef9c6b3fb3766ab7709d9cc1f562ff153f5678fa5d9eeecc1bf57dcd2"
 published-version = "1"
