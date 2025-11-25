@@ -5,6 +5,7 @@ import {
   createTestRegistry,
   getSuiAddress,
   AgentRegistry,
+  network,
 } from "@silvana-one/coordination";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { SUI_CLOCK_OBJECT_ID } from "@mysten/sui/utils";
@@ -33,6 +34,7 @@ export async function createApp() {
     );
   }
 
+  console.log("network:", network);
   console.log("registryAddress:", registryAddress);
   console.log("registryPackageID:", registryPackageID);
 
